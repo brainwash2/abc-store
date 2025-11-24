@@ -1,5 +1,5 @@
 'use client';
-
+import NewsletterSection from './NewsletterSection';
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/common/Header';
 import HeroBanner from './HeroBanner';
@@ -76,6 +76,7 @@ const HomepageInteractive = () => {
         <ProductShowcase currentLanguage={currentLanguage} />
         <CategoryNavigation currentLanguage={currentLanguage} />
         <TechNewsSection currentLanguage={currentLanguage} />
+        <NewsletterSection />  
         <CurrencyConverter currentLanguage={currentLanguage} />
       </main>
 
