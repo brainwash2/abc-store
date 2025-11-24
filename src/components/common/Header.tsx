@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Icon from '@/components/ui/AppIcon';
-import CartSheet from '@/components/layout/CartSheet'; // Import the Sheet
+import CartSheet from '@/components/layout/CartSheet';
 import { useCartStore } from '@/store/useCart';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -17,44 +17,37 @@ interface HeaderProps {
   onAccountClick?: () => void;
 }
 
+const ADMIN_EMAILS = ['test@abc.com', 'contact@abc-informatique.dz']; // LIST OF ADMINS
+
 const Header = ({ 
-  isAuthenticated = true, // Assuming true for now
   currentLanguage = 'fr',
   onLanguageChange
 }: HeaderProps) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const router = useRouter();
   
-  // Connect to Real Store
   const cartItems = useCartStore((state) => state.items);
-  const realCartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 0);
-    };
+    const handleScroll = () => setIsScrolled(window.scrollY > 0);
     window.addEventListener('scroll', handleScroll);
+    
+    // CHECK USER SESSION
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setUserEmail(user?.email || null);
+    };
+    checkUser();
+
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navigationItems = [
-    { label: { fr: 'Accueil', ar: 'الرئيسية' }, href: '/homepage', icon: 'HomeIcon' },
-    { label: { fr: 'Produits', ar: 'المنتجات' }, href: '/product-catalog', icon: 'CubeIcon' },
-    // Removed Cart from nav items because it's a dedicated button
-    { label: { fr: 'Commandes', ar: 'الطلبات' }, href: '/user/orders', icon: 'ClipboardDocumentListIcon' }
-  ];
-
-  // UPDATED LINKS: Pointing to the real pages we built
-  const accountMenuItems = [
-    { label: { fr: 'Mon Profil', ar: 'ملفي الشخصي' }, href: '/user/dashboard', icon: 'UserIcon' },
-    { label: { fr: 'Mes Commandes', ar: 'طلباتي' }, href: '/user/orders', icon: 'ClipboardDocumentListIcon' },
-    { label: { fr: 'Admin', ar: 'الإدارة' }, href: '/admin', icon: 'CogIcon' }, // Added Admin link for easy access
-  ];
-
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    setUserEmail(null);
     router.push('/login');
   };
 
@@ -64,6 +57,21 @@ const Header = ({
     document.documentElement.dir = newLanguage === 'ar' ? 'rtl' : 'ltr';
     document.documentElement.lang = newLanguage;
   };
+
+  // DYNAMIC MENU ITEMS
+  const accountMenuItems = [
+    ...(userEmail ? [
+      { label: { fr: 'Mon Profil', ar: 'ملفي الشخصي' }, href: '/user/dashboard', icon: 'UserIcon' },
+      { label: { fr: 'Mes Commandes', ar: 'طلباتي' }, href: '/user/orders', icon: 'ClipboardDocumentListIcon' }
+    ] : [
+      { label: { fr: 'Se connecter', ar: 'تسجيل الدخول' }, href: '/login', icon: 'UserIcon' },
+      { label: { fr: 'Créer un compte', ar: 'إنشاء حساب' }, href: '/register', icon: 'UserPlusIcon' }
+    ]),
+    // Only show Admin if email matches
+    ...(userEmail && ADMIN_EMAILS.includes(userEmail) ? [{ 
+      label: { fr: 'Admin', ar: 'الإدارة' }, href: '/admin', icon: 'CogIcon' 
+    }] : []), 
+  ];
 
   return (
     <>
@@ -78,126 +86,55 @@ const Header = ({
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                   <Icon name="ComputerDesktopIcon" size={20} className="text-primary-foreground" />
                 </div>
-                <span className="text-xl font-semibold text-text-primary">
-                  ABC Informatique
-                </span>
+                <span className="text-xl font-semibold text-text-primary">ABC Informatique</span>
               </Link>
             </div>
 
-            {/* Desktop Navigation */}
+            {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-8 rtl:space-x-reverse">
-              {navigationItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="flex items-center space-x-2 rtl:space-x-reverse px-3 py-2 text-sm font-medium text-text-secondary hover:text-primary transition-smooth rounded-md hover:bg-muted"
-                >
-                  <Icon name={item.icon as any} size={18} />
-                  <span>{item.label[currentLanguage]}</span>
-                </Link>
-              ))}
+              <Link href="/homepage" className="text-sm font-medium text-text-secondary hover:text-primary">
+                {currentLanguage === 'fr' ? 'Accueil' : 'الرئيسية'}
+              </Link>
+              <Link href="/product-catalog" className="text-sm font-medium text-text-secondary hover:text-primary">
+                {currentLanguage === 'fr' ? 'Produits' : 'المنتجات'}
+              </Link>
+              {/* BLOG LINK ADDED */}
+              <Link href="/blog" className="text-sm font-medium text-text-secondary hover:text-primary">
+                {currentLanguage === 'fr' ? 'Actualités' : 'أخبار'}
+              </Link>
             </nav>
 
-            {/* Desktop Utility Area */}
+            {/* Icons */}
             <div className="hidden md:flex items-center space-x-4 rtl:space-x-reverse">
-              {/* Language */}
-              <button
-                onClick={handleLanguageToggle}
-                className="flex items-center space-x-1 rtl:space-x-reverse px-3 py-2 text-sm font-medium text-text-secondary hover:text-primary transition-smooth rounded-md hover:bg-muted"
-              >
-                <Icon name="LanguageIcon" size={18} />
-                <span className="uppercase">{currentLanguage}</span>
+              <button onClick={handleLanguageToggle} className="p-2 hover:bg-muted rounded-md">
+                <span className="uppercase font-bold text-sm">{currentLanguage}</span>
               </button>
 
-              {/* THE CART SHEET (Replaces the old button) */}
               <CartSheet />
 
-              {/* Account Menu */}
-              <div className="relative">
-                <button
-                  onClick={() => setIsAccountMenuOpen(!isAccountMenuOpen)}
-                  className="flex items-center space-x-1 rtl:space-x-reverse p-2 text-text-secondary hover:text-primary transition-smooth rounded-md hover:bg-muted"
-                >
+              {/* Profile Dropdown */}
+              <div className="relative group">
+                <button className="p-2 hover:bg-muted rounded-md">
                   <Icon name="UserIcon" size={20} />
-                  <Icon name="ChevronDownIcon" size={16} className={`transition-transform ${isAccountMenuOpen ? 'rotate-180' : ''}`} />
                 </button>
-
-                {/* Account Dropdown */}
-                {isAccountMenuOpen && (
-                  <div className="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-48 bg-popover border border-border rounded-lg shadow-elevation-3 animate-slide-down z-[101]">
-                    <div className="py-1">
-                      {accountMenuItems.map((item) => (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => setIsAccountMenuOpen(false)}
-                          className="flex items-center space-x-2 rtl:space-x-reverse px-4 py-2 text-sm text-popover-foreground hover:bg-muted transition-smooth"
-                        >
-                          <Icon name={item.icon as any} size={16} />
-                          <span>{item.label[currentLanguage]}</span>
-                        </Link>
-                      ))}
-                      <hr className="my-1 border-border" />
-                      <button 
-                        onClick={handleLogout}
-                        className="flex items-center space-x-2 rtl:space-x-reverse w-full px-4 py-2 text-sm text-error hover:bg-muted transition-smooth"
-                      >
-                        <Icon name="ArrowRightOnRectangleIcon" size={16} />
-                        <span>{currentLanguage === 'fr' ? 'Déconnexion' : 'تسجيل الخروج'}</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-border rounded-lg shadow-lg hidden group-hover:block">
+                  {accountMenuItems.map((item) => (
+                    <Link key={item.href} href={item.href} className="block px-4 py-2 text-sm hover:bg-muted flex items-center gap-2">
+                      <Icon name={item.icon as any} size={16} />
+                      {item.label[currentLanguage]}
+                    </Link>
+                  ))}
+                  {userEmail && (
+                    <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 flex items-center gap-2">
+                      <Icon name="ArrowRightOnRectangleIcon" size={16} />
+                      Déconnexion
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-
-            {/* Mobile Menu Toggle */}
-            <div className="md:hidden flex items-center space-x-2 rtl:space-x-reverse">
-              <CartSheet />
-              <button
-                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 text-text-secondary hover:text-primary transition-smooth rounded-md"
-              >
-                <Icon name={isMobileMenuOpen ? "XMarkIcon" : "Bars3Icon"} size={20} />
-              </button>
             </div>
           </div>
         </div>
-
-        {/* Mobile Navigation Menu */}
-        {isMobileMenuOpen && (
-          <div className="md:hidden bg-surface border-t border-border animate-slide-down h-screen overflow-y-auto pb-20">
-            <div className="px-4 py-2 space-y-1">
-              {navigationItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center justify-between px-3 py-3 text-base font-medium text-text-secondary hover:text-primary hover:bg-muted transition-smooth rounded-md"
-                >
-                  <div className="flex items-center space-x-3 rtl:space-x-reverse">
-                    <Icon name={item.icon as any} size={20} />
-                    <span>{item.label[currentLanguage]}</span>
-                  </div>
-                </Link>
-              ))}
-              
-              <hr className="my-2 border-border" />
-              
-              {accountMenuItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className="flex items-center space-x-3 rtl:space-x-reverse px-3 py-3 text-base font-medium text-text-secondary hover:text-primary hover:bg-muted transition-smooth rounded-md"
-                >
-                  <Icon name={item.icon as any} size={20} />
-                  <span>{item.label[currentLanguage]}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
       </header>
     </>
   );
