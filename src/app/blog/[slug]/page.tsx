@@ -49,7 +49,7 @@ export default function ArticlePage({ params }: { params: { slug: string } }) {
           </p>
         </div>
 
-        {/* AFFILIATE LINK SECTION */}
+        {/* AFFILIATE / SHOP LINK SECTION */}
         <div className="mt-12 p-8 bg-primary/5 rounded-2xl border border-primary/10 text-center">
           <h3 className="text-xl font-bold text-primary mb-2">Ce produit vous intéresse ?</h3>
           <p className="text-slate-600 mb-6">Obtenez le meilleur prix sur notre boutique.</p>

@@ -10,7 +10,7 @@ export default function BlogPage() {
       id: 1,
       title: "Pourquoi la RTX 4060 est la reine du 1080p",
       category: "Review Hardware",
-      image: "https://images.unsplash.com/photo-1591488320449-011701bb6704",
+      image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=800&auto=format&fit=crop",
       excerpt: "Nous avons testé la dernière carte de NVIDIA sur 20 jeux. Voici les résultats surprenants...",
       slug: "review-rtx-4060",
       date: "22 Nov 2025"
@@ -19,7 +19,7 @@ export default function BlogPage() {
       id: 2,
       title: "Top 5 des Cryptos à surveiller en 2025",
       category: "Crypto & Web3",
-      image: "https://images.unsplash.com/photo-1518546305927-5a555bb7020d",
+      image: "https://images.unsplash.com/photo-1518546305927-5a555bb7020d?q=80&w=800&auto=format&fit=crop",
       excerpt: "Le marché bouge. Voici les projets qui construisent le futur de la finance décentralisée.",
       slug: "top-crypto-2025",
       date: "20 Nov 2025"
@@ -28,7 +28,7 @@ export default function BlogPage() {
       id: 3,
       title: "Guide: Comment monter son PC Gamer",
       category: "Tutoriel",
-      image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7",
+      image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?q=80&w=800&auto=format&fit=crop",
       excerpt: "Pas à pas : du choix des composants à l'installation de Windows. Un guide complet.",
       slug: "guide-pc-gamer",
       date: "18 Nov 2025"
@@ -63,11 +63,6 @@ export default function BlogPage() {
               </div>
             </Link>
           ))}
-        </div>
-        
-        {/* GOOGLE ADSENSE PLACEHOLDER */}
-        <div className="mt-16 p-8 bg-slate-100 border-2 border-dashed border-slate-300 rounded-xl text-center">
-          <p className="text-slate-400 font-medium">Espace Publicitaire (Google Adsense / Affiliate)</p>
         </div>
       </main>
     </div>
