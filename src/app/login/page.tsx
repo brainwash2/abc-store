@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { Loader2, AlertCircle } from 'lucide-react'; // Make sure you have lucide-react installed
+import { Loader2, AlertCircle } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -13,15 +13,17 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Optional: Auto-redirect if already logged in
+  // Auto-redirect if already logged in
   useEffect(() => {
     const checkSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        // Redirect based on who they are. 
-        // If you are testing Admin, you might want to go to /admin
-        // For now, let's send everyone to /user to be safe
-        router.push('/user'); 
+        // If admin, go to admin. If user, go to user dashboard.
+        if (session.user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL) {
+           router.push('/admin');
+        } else {
+           router.push('/user/dashboard'); // <--- FIXED REDIRECT
+        }
       }
     };
     checkSession();
@@ -38,28 +40,21 @@ export default function LoginPage() {
         password,
       });
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      // Login Successful!
-      // Check if it's the admin email to redirect correctly
-      // Note: We use the public env var for the check
+      // Check if Admin
       const isAdmin = email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
       
       if (isAdmin) {
         router.push('/admin');
       } else {
-        router.push('/user');
+        router.push('/user/dashboard'); // <--- FIXED REDIRECT
       }
-      
-      // We do NOT set loading to false here, because the page is redirecting.
-      // If we stop the spinner, the user might click again.
 
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(err.message || "Une erreur est survenue lors de la connexion.");
-      setLoading(false); // <--- CRITICAL: Stop the spinner if it fails!
+      setError(err.message || "Une erreur est survenue.");
+      setLoading(false);
     }
   };
 
@@ -106,15 +101,9 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-slate-900 text-white py-3 rounded-lg font-bold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-slate-900 text-white py-3 rounded-lg font-bold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
           >
-            {loading ? (
-              <>
-                <Loader2 className="animate-spin" size={20} /> Connexion...
-              </>
-            ) : (
-              'Se connecter'
-            )}
+            {loading ? <Loader2 className="animate-spin" size={20} /> : 'Se connecter'}
           </button>
         </form>
 
