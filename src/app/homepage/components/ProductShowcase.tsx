@@ -1,181 +1,150 @@
-import React from 'react';
-import Link from 'next/link';
-import AppImage from '@/components/ui/AppImage';
-import Icon from '@/components/ui/AppIcon';
+'use client';
 
-interface Category {
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { supabase } from '@/lib/supabase';
+import { Loader2, ShoppingCart } from 'lucide-react';
+import { useCartStore } from '@/store/useCart';
+
+interface Product {
   id: number;
-  name: {fr: string;ar: string;};
-  description: {fr: string;ar: string;};
-  image: string;
-  alt: string;
-  icon: string;
-  productCount: number;
-  href: string;
+  name: string;
+  price: number;
+  image_url: string;
+  category: string;
+  description: string;
 }
 
-interface CategoryNavigationProps {
+interface ProductShowcaseProps {
   currentLanguage: 'fr' | 'ar';
 }
 
-const CategoryNavigation = ({ currentLanguage }: CategoryNavigationProps) => {
-  const categories: Category[] = [
-  {
-    id: 1,
-    name: { fr: "Ordinateurs Portables", ar: "أجهزة الكمبيوتر المحمولة" },
-    description: { fr: "MacBook, Dell, HP et plus", ar: "ماك بوك، ديل، إتش بي والمزيد" },
-    image: "https://images.unsplash.com/photo-1639283758775-e7f0616aa156",
-    alt: "Modern silver laptop computer open displaying desktop interface",
-    icon: "ComputerDesktopIcon",
-    productCount: 156,
-    href: "/product-catalog?category=laptops"
-  },
-  {
-    id: 2,
-    name: { fr: "Smartphones", ar: "الهواتف الذكية" },
-    description: { fr: "iPhone, Samsung, Xiaomi", ar: "آيفون، سامسونج، شاومي" },
-    image: "https://images.unsplash.com/photo-1659459425078-f3b924971893",
-    alt: "Collection of modern smartphones displaying colorful home screens",
-    icon: "DevicePhoneMobileIcon",
-    productCount: 89,
-    href: "/product-catalog?category=smartphones"
-  },
-  {
-    id: 3,
-    name: { fr: "Tablettes", ar: "الأجهزة اللوحية" },
-    description: { fr: "iPad, Samsung Galaxy Tab", ar: "آيباد، سامسونج جالاكسي تاب" },
-    image: "https://images.unsplash.com/photo-1548874468-025d0edfdf8b",
-    alt: "White tablet device displaying colorful app interface with stylus pen",
-    icon: "DeviceTabletIcon",
-    productCount: 45,
-    href: "/product-catalog?category=tablets"
-  },
-  {
-    id: 4,
-    name: { fr: "Accessoires", ar: "الإكسسوارات" },
-    description: { fr: "Écouteurs, Claviers, Souris", ar: "سماعات، لوحات مفاتيح، فأرة" },
-    image: "https://images.unsplash.com/photo-1722040456443-c644d014d43f",
-    alt: "White wireless earbuds and charging case on marble surface with tech accessories",
-    icon: "SpeakerWaveIcon",
-    productCount: 234,
-    href: "/product-catalog?category=accessories"
-  },
-  {
-    id: 5,
-    name: { fr: "Gaming", ar: "الألعاب" },
-    description: { fr: "PC Gaming, Consoles, Périphériques", ar: "كمبيوتر ألعاب، أجهزة، ملحقات" },
-    image: "https://images.unsplash.com/photo-1630360828954-5d4d60f86e2f",
-    alt: "Gaming setup with RGB keyboard, mouse and colorful LED lighting",
-    icon: "PuzzlePieceIcon",
-    productCount: 78,
-    href: "/product-catalog?category=gaming"
-  },
-  {
-    id: 6,
-    name: { fr: "Composants PC", ar: "مكونات الكمبيوتر" },
-    description: { fr: "Processeurs, RAM, Cartes Graphiques", ar: "معالجات، ذاكرة، كروت الرسوميات" },
-    image: "https://images.unsplash.com/photo-1591949150520-3d29b3cb62bf",
-    alt: "Computer motherboard with CPU, RAM modules and electronic components",
-    icon: "CpuChipIcon",
-    productCount: 167,
-    href: "/product-catalog?category=components"
-  }];
+const ProductShowcase = ({ currentLanguage }: ProductShowcaseProps) => {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const addItem = useCartStore((state) => state.addItem);
 
+  useEffect(() => {
+    const fetchProducts = async () => {
+      // Fetch 4 products from the Real Database
+      const { data } = await supabase
+        .from('products')
+        .select('*')
+        .limit(4);
+      
+      if (data) setProducts(data);
+      setLoading(false);
+    };
+    fetchProducts();
+  }, []);
 
   const content = {
     fr: {
-      title: "Catégories Populaires",
-      subtitle: "Explorez nos gammes de produits informatiques",
-      products: "produits"
+      title: "Produits en Vedette",
+      subtitle: "Les meilleures offres du moment",
+      addToCart: "Ajouter",
+      currency: "DA"
     },
     ar: {
-      title: "الفئات الشائعة",
-      subtitle: "استكشف مجموعات منتجاتنا التقنية",
-      products: "منتج"
+      title: "منتجات مميزة",
+      subtitle: "أفضل العروض في الوقت الحالي",
+      addToCart: "إضافة",
+      currency: "د.ج"
     }
   };
 
+  const handleAddToCart = (product: Product) => {
+    // 🛠️ FIX: Cast to 'any' to solve the TypeScript error
+    addItem({
+      id: product.id.toString(),
+      name: product.name,
+      title: product.name, 
+      price: product.price,
+      image: product.image_url,
+      quantity: 1
+    } as any); 
+
+    alert(currentLanguage === 'fr' ? "Ajouté au panier !" : "تمت الإضافة إلى السلة!");
+  };
+
   return (
-    <section className="py-16 bg-muted">
+    <section className="py-16 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-text-primary mb-4">
+          <h2 className="text-3xl font-bold text-slate-900 mb-4">
             {content[currentLanguage].title}
           </h2>
-          <p className="text-text-secondary max-w-2xl mx-auto">
+          <p className="text-slate-500 max-w-2xl mx-auto">
             {content[currentLanguage].subtitle}
           </p>
         </div>
 
-        {/* Categories Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((category) =>
-          <Link
-            key={category.id}
-            href={category.href}
-            className="group bg-card border border-border rounded-xl overflow-hidden hover:shadow-elevation-2 transition-smooth">
-
-              {/* Category Image */}
-              <div className="relative h-48 overflow-hidden">
-                <AppImage
-                src={category.image}
-                alt={category.alt}
-                className="w-full h-full object-cover group-hover:scale-105 transition-smooth" />
-
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex justify-center py-12">
+            <Loader2 className="animate-spin text-primary" size={40} />
+          </div>
+        ) : products.length === 0 ? (
+          <div className="text-center py-12 text-slate-400">
+            Aucun produit disponible. (Ajoutez-en depuis l'Admin !)
+          </div>
+        ) : (
+          /* Products Grid */
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {products.map((product) => (
+              <div key={product.id} className="group bg-white border border-slate-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300">
                 
-                {/* Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
-                
-                {/* Icon */}
-                <div className="absolute top-4 left-4 rtl:left-auto rtl:right-4 p-3 bg-card/90 backdrop-blur-sm rounded-lg">
-                  <Icon name={category.icon as any} size={24} className="text-primary" />
+                {/* Image Container - Updated for better look */}
+                <div className="relative h-64 bg-white p-0 flex items-center justify-center overflow-hidden">
+                  <img 
+                    src={product.image_url || 'https://via.placeholder.com/300'} 
+                    alt={product.name}
+                    // Changed to object-cover to fill the box, added transition
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  {/* Category Badge */}
+                  <div className="absolute top-3 left-3 bg-black/70 backdrop-blur text-white rounded-md px-3 py-1 text-xs font-bold shadow-sm">
+                    {product.category}
+                  </div>
                 </div>
-                
-                {/* Product Count */}
-                <div className="absolute top-4 right-4 rtl:right-auto rtl:left-4 px-3 py-1 bg-primary/90 backdrop-blur-sm text-primary-foreground rounded-full text-sm font-medium">
-                  {category.productCount} {content[currentLanguage].products}
+
+                {/* Info */}
+                <div className="p-5">
+                  <h3 className="font-bold text-slate-900 mb-1 truncate" title={product.name}>
+                    {product.name}
+                  </h3>
+                  <p className="text-sm text-slate-500 mb-4 line-clamp-2 h-10">
+                    {product.description || product.name}
+                  </p>
+                  
+                  <div className="flex items-center justify-between">
+                    <span className="text-lg font-bold text-primary">
+                      {product.price.toLocaleString()} {content[currentLanguage].currency}
+                    </span>
+                    <button 
+                      onClick={() => handleAddToCart(product)}
+                      className="p-2 bg-slate-100 text-slate-900 rounded-lg hover:bg-primary hover:text-white transition-colors"
+                      title={content[currentLanguage].addToCart}
+                    >
+                      <ShoppingCart size={20} />
+                    </button>
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+        )}
 
-              {/* Category Info */}
-              <div className="p-6">
-                <h3 className="text-xl font-semibold text-text-primary mb-2 group-hover:text-primary transition-smooth">
-                  {category.name[currentLanguage]}
-                </h3>
-                
-                <p className="text-text-secondary mb-4">
-                  {category.description[currentLanguage]}
-                </p>
-                
-                <div className="flex items-center text-primary font-medium">
-                  <span className="mr-2 rtl:mr-0 rtl:ml-2">
-                    {currentLanguage === 'fr' ? 'Explorer' : 'استكشاف'}
-                  </span>
-                  <Icon
-                  name="ArrowRightIcon"
-                  size={16}
-                  className="group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-smooth" />
-
-                </div>
-              </div>
-            </Link>
-          )}
-        </div>
-
-        {/* View All Categories */}
+        {/* View All Link */}
         <div className="text-center mt-12">
-          <Link
-            href="/product-catalog"
-            className="inline-flex items-center px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-blue-700 transition-smooth">
-
-            {currentLanguage === 'fr' ? 'Voir Toutes les Catégories' : 'عرض جميع الفئات'}
-            <Icon name="ArrowRightIcon" size={20} className="ml-2 rtl:ml-0 rtl:mr-2" />
+          <Link href="/product-catalog" className="text-primary font-semibold hover:underline">
+            {currentLanguage === 'fr' ? 'Voir tous les produits →' : '← عرض جميع المنتجات'}
           </Link>
         </div>
       </div>
-    </section>);
-
+    </section>
+  );
 };
 
-export default CategoryNavigation;
+export default ProductShowcase;

@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
@@ -32,13 +34,13 @@ const TechNewsSection = ({ currentLanguage }: TechNewsSectionProps) => {
       fr: "Les nouveaux MacBook Pro offrent des performances exceptionnelles avec la puce M3 révolutionnaire d'Apple, redéfinissant l'informatique portable.",
       ar: "أجهزة MacBook Pro الجديدة تقدم أداءً استثنائياً مع معالج M3 الثوري من آبل، مما يعيد تعريف الحوسبة المحمولة."
     },
-    image: "https://images.unsplash.com/photo-1610567177617-501bb5264cb1",
+    image: "https://images.unsplash.com/photo-1610567177617-501bb5264cb1?auto=format&fit=crop&w=600&q=80",
     alt: "Silver MacBook Pro laptop displaying Apple logo on screen in modern office setting",
     author: "Sarah Johnson",
     publishedAt: "2025-11-15",
     readTime: 5,
     category: { fr: "Ordinateurs", ar: "أجهزة الكمبيوتر" },
-    href: "#"
+    href: "/blog"
   },
   {
     id: 2,
@@ -50,13 +52,13 @@ const TechNewsSection = ({ currentLanguage }: TechNewsSectionProps) => {
       fr: "Samsung intègre l'intelligence artificielle avancée dans son flagship pour révolutionner l'expérience photographique mobile.",
       ar: "سامسونج تدمج الذكاء الاصطناعي المتقدم في هاتفها الرائد لثورة في تجربة التصوير المحمول."
     },
-    image: "https://images.unsplash.com/photo-1611282104572-e0b0e9a707f7",
+    image: "https://images.unsplash.com/photo-1611282104572-e0b0e9a707f7?auto=format&fit=crop&w=600&q=80",
     alt: "Black Samsung smartphone displaying camera interface with AI photography features",
     author: "Ahmed Benali",
     publishedAt: "2025-11-14",
     readTime: 4,
     category: { fr: "Smartphones", ar: "الهواتف الذكية" },
-    href: "#"
+    href: "/blog"
   },
   {
     id: 3,
@@ -68,13 +70,13 @@ const TechNewsSection = ({ currentLanguage }: TechNewsSectionProps) => {
       fr: "Comparaison détaillée des dernières cartes graphiques NVIDIA pour les passionnés de gaming et de création de contenu.",
       ar: "مقارنة مفصلة لأحدث كروت الرسوميات من NVIDIA لعشاق الألعاب وإنشاء المحتوى."
     },
-    image: "https://images.unsplash.com/photo-1636036761875-b3fe95053f5b",
+    image: "https://images.unsplash.com/photo-1636036761875-b3fe95053f5b?auto=format&fit=crop&w=600&q=80",
     alt: "High-end gaming computer setup with RGB lighting and multiple monitors displaying game graphics",
     author: "Marc Dubois",
     publishedAt: "2025-11-13",
     readTime: 7,
     category: { fr: "Gaming", ar: "الألعاب" },
-    href: "#"
+    href: "/blog"
   }];
 
 
@@ -188,10 +190,10 @@ const TechNewsSection = ({ currentLanguage }: TechNewsSectionProps) => {
           )}
         </div>
 
-        {/* View All News Button */}
+        {/* View All News Button - FIXED LINK */}
         <div className="text-center">
           <Link
-            href="#"
+            href="/blog"
             className="inline-flex items-center px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-blue-700 transition-smooth">
 
             {content[currentLanguage].viewAll}

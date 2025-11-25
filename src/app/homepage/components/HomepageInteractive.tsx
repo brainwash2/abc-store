@@ -1,11 +1,12 @@
 'use client';
-import NewsletterSection from './NewsletterSection';
+
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/common/Header';
 import HeroBanner from './HeroBanner';
 import ProductShowcase from './ProductShowcase';
 import CategoryNavigation from './CategoryNavigation';
 import TechNewsSection from './TechNewsSection';
+import NewsletterSection from './NewsletterSection';
 import CurrencyConverter from './CurrencyConverter';
 
 const HomepageInteractive = () => {
@@ -29,7 +30,6 @@ const HomepageInteractive = () => {
 
   const handleLanguageChange = (language: 'fr' | 'ar') => {
     if (!isHydrated) return;
-    
     setCurrentLanguage(language);
     localStorage.setItem('language', language);
     document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
@@ -37,19 +37,16 @@ const HomepageInteractive = () => {
   };
 
   const handleCartClick = () => {
-    // Navigate to cart page or open cart modal
     window.location.href = '/shopping-cart';
   };
 
   const handleAccountClick = () => {
-    // Handle account menu toggle
     console.log('Account menu clicked');
   };
 
   if (!isHydrated) {
     return (
       <div className="min-h-screen bg-background">
-        {/* Loading skeleton */}
         <div className="animate-pulse">
           <div className="h-16 bg-muted"></div>
           <div className="h-96 bg-muted"></div>
@@ -73,8 +70,13 @@ const HomepageInteractive = () => {
       {/* Main Content */}
       <main className="pt-16">
         <HeroBanner currentLanguage={currentLanguage} />
-        <ProductShowcase currentLanguage={currentLanguage} />
+        
+        {/* 
+           NOTE: I reordered these slightly for better UX flow:
+           Hero -> Categories -> Featured Products -> News -> Newsletter 
+        */}
         <CategoryNavigation currentLanguage={currentLanguage} />
+        <ProductShowcase currentLanguage={currentLanguage} />
         <TechNewsSection currentLanguage={currentLanguage} />
         <NewsletterSection />  
         <CurrencyConverter currentLanguage={currentLanguage} />
@@ -88,8 +90,7 @@ const HomepageInteractive = () => {
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">ABC Informatique</h3>
               <p className="text-slate-300 text-sm">
-                {currentLanguage === 'fr' ?'Votre partenaire de confiance pour tous vos besoins informatiques en Algérie.' :'شريكك الموثوق لجميع احتياجاتك التقنية في الجزائر.'
-                }
+                {currentLanguage === 'fr' ? 'Votre partenaire de confiance pour tous vos besoins informatiques en Algérie.' : 'شريكك الموثوق لجميع احتياجاتك التقنية في الجزائر.'}
               </p>
             </div>
 

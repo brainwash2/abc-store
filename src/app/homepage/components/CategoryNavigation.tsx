@@ -20,67 +20,67 @@ interface CategoryNavigationProps {
 
 const CategoryNavigation = ({ currentLanguage }: CategoryNavigationProps) => {
   const categories: Category[] = [
-  {
-    id: 1,
-    name: { fr: "Ordinateurs Portables", ar: "أجهزة الكمبيوتر المحمولة" },
-    description: { fr: "MacBook, Dell, HP et plus", ar: "ماك بوك، ديل، إتش بي والمزيد" },
-    image: "https://images.unsplash.com/photo-1639283758775-e7f0616aa156",
-    alt: "Modern silver laptop computer open displaying desktop interface",
-    icon: "ComputerDesktopIcon",
-    productCount: 156,
-    href: "/product-catalog?category=laptops"
-  },
-  {
-    id: 2,
-    name: { fr: "Smartphones", ar: "الهواتف الذكية" },
-    description: { fr: "iPhone, Samsung, Xiaomi", ar: "آيفون، سامسونج، شاومي" },
-    image: "https://images.unsplash.com/photo-1659459425078-f3b924971893",
-    alt: "Collection of modern smartphones displaying colorful home screens",
-    icon: "DevicePhoneMobileIcon",
-    productCount: 89,
-    href: "/product-catalog?category=smartphones"
-  },
-  {
-    id: 3,
-    name: { fr: "Tablettes", ar: "الأجهزة اللوحية" },
-    description: { fr: "iPad, Samsung Galaxy Tab", ar: "آيباد، سامسونج جالاكسي تاب" },
-    image: "https://images.unsplash.com/photo-1548874468-025d0edfdf8b",
-    alt: "White tablet device displaying colorful app interface with stylus pen",
-    icon: "DeviceTabletIcon",
-    productCount: 45,
-    href: "/product-catalog?category=tablets"
-  },
-  {
-    id: 4,
-    name: { fr: "Accessoires", ar: "الإكسسوارات" },
-    description: { fr: "Écouteurs, Claviers, Souris", ar: "سماعات، لوحات مفاتيح، فأرة" },
-    image: "https://images.unsplash.com/photo-1722040456443-c644d014d43f",
-    alt: "White wireless earbuds and charging case on marble surface with tech accessories",
-    icon: "SpeakerWaveIcon",
-    productCount: 234,
-    href: "/product-catalog?category=accessories"
-  },
-  {
-    id: 5,
-    name: { fr: "Gaming", ar: "الألعاب" },
-    description: { fr: "PC Gaming, Consoles, Périphériques", ar: "كمبيوتر ألعاب، أجهزة، ملحقات" },
-    image: "https://images.unsplash.com/photo-1630360828954-5d4d60f86e2f",
-    alt: "Gaming setup with RGB keyboard, mouse and colorful LED lighting",
-    icon: "PuzzlePieceIcon",
-    productCount: 78,
-    href: "/product-catalog?category=gaming"
-  },
-  {
-    id: 6,
-    name: { fr: "Composants PC", ar: "مكونات الكمبيوتر" },
-    description: { fr: "Processeurs, RAM, Cartes Graphiques", ar: "معالجات، ذاكرة، كروت الرسوميات" },
-    image: "https://images.unsplash.com/photo-1591949150520-3d29b3cb62bf",
-    alt: "Computer motherboard with CPU, RAM modules and electronic components",
-    icon: "CpuChipIcon",
-    productCount: 167,
-    href: "/product-catalog?category=components"
-  }];
-
+    {
+      id: 1,
+      name: { fr: "Ordinateurs Portables", ar: "أجهزة الكمبيوتر المحمولة" },
+      description: { fr: "MacBook, Dell, HP et plus", ar: "ماك بوك، ديل، إتش بي والمزيد" },
+      image: "https://images.unsplash.com/photo-1639283758775-e7f0616aa156?auto=format&fit=crop&w=600&q=80",
+      alt: "Modern silver laptop computer open displaying desktop interface",
+      icon: "ComputerDesktopIcon",
+      productCount: 156,
+      href: "/product-catalog?category=laptops"
+    },
+    {
+      id: 2,
+      name: { fr: "Smartphones", ar: "الهواتف الذكية" },
+      description: { fr: "iPhone, Samsung, Xiaomi", ar: "آيفون، سامسونج، شاومي" },
+      image: "https://images.unsplash.com/photo-1659459425078-f3b924971893?auto=format&fit=crop&w=600&q=80",
+      alt: "Collection of modern smartphones displaying colorful home screens",
+      icon: "DevicePhoneMobileIcon",
+      productCount: 89,
+      href: "/product-catalog?category=smartphones"
+    },
+    {
+      id: 3,
+      name: { fr: "Tablettes", ar: "الأجهزة اللوحية" },
+      description: { fr: "iPad, Samsung Galaxy Tab", ar: "آيباد، سامسونج جالاكسي تاب" },
+      image: "https://images.unsplash.com/photo-1548874468-025d0edfdf8b?auto=format&fit=crop&w=600&q=80",
+      alt: "White tablet device displaying colorful app interface with stylus pen",
+      icon: "DeviceTabletIcon",
+      productCount: 45,
+      href: "/product-catalog?category=tablets"
+    },
+    {
+      id: 4,
+      name: { fr: "Accessoires", ar: "الإكسسوارات" },
+      description: { fr: "Écouteurs, Claviers, Souris", ar: "سماعات، لوحات مفاتيح، فأرة" },
+      image: "https://images.unsplash.com/photo-1722040456443-c644d014d43f?auto=format&fit=crop&w=600&q=80",
+      alt: "White wireless earbuds and charging case on marble surface with tech accessories",
+      icon: "SpeakerWaveIcon",
+      productCount: 234,
+      href: "/product-catalog?category=accessories"
+    },
+    {
+      id: 5,
+      name: { fr: "Gaming", ar: "الألعاب" },
+      description: { fr: "PC Gaming, Consoles, Périphériques", ar: "كمبيوتر ألعاب، أجهزة، ملحقات" },
+      image: "https://images.unsplash.com/photo-1630360828954-5d4d60f86e2f?auto=format&fit=crop&w=600&q=80",
+      alt: "Gaming setup with RGB keyboard, mouse and colorful LED lighting",
+      icon: "PuzzlePieceIcon",
+      productCount: 78,
+      href: "/product-catalog?category=gaming"
+    },
+    {
+      id: 6,
+      name: { fr: "Composants PC", ar: "مكونات الكمبيوتر" },
+      description: { fr: "Processeurs, RAM, Cartes Graphiques", ar: "معالجات، ذاكرة، كروت الرسوميات" },
+      image: "https://images.unsplash.com/photo-1591949150520-3d29b3cb62bf?auto=format&fit=crop&w=600&q=80",
+      alt: "Computer motherboard with CPU, RAM modules and electronic components",
+      icon: "CpuChipIcon",
+      productCount: 167,
+      href: "/product-catalog?category=components"
+    }
+  ];
 
   const content = {
     fr: {
@@ -110,19 +110,19 @@ const CategoryNavigation = ({ currentLanguage }: CategoryNavigationProps) => {
 
         {/* Categories Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {categories.map((category) =>
-          <Link
-            key={category.id}
-            href={category.href}
-            className="group bg-card border border-border rounded-xl overflow-hidden hover:shadow-elevation-2 transition-smooth">
-
+          {categories.map((category) => (
+            <Link
+              key={category.id}
+              href={category.href}
+              className="group bg-card border border-border rounded-xl overflow-hidden hover:shadow-elevation-2 transition-smooth"
+            >
               {/* Category Image */}
               <div className="relative h-48 overflow-hidden">
                 <AppImage
-                src={category.image}
-                alt={category.alt}
-                className="w-full h-full object-cover group-hover:scale-105 transition-smooth" />
-
+                  src={category.image}
+                  alt={category.alt}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-smooth" 
+                />
                 
                 {/* Overlay */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent"></div>
@@ -153,29 +153,29 @@ const CategoryNavigation = ({ currentLanguage }: CategoryNavigationProps) => {
                     {currentLanguage === 'fr' ? 'Explorer' : 'استكشاف'}
                   </span>
                   <Icon
-                  name="ArrowRightIcon"
-                  size={16}
-                  className="group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-smooth" />
-
+                    name="ArrowRightIcon"
+                    size={16}
+                    className="group-hover:translate-x-1 rtl:group-hover:-translate-x-1 transition-smooth" 
+                  />
                 </div>
               </div>
             </Link>
-          )}
+          ))}
         </div>
 
         {/* View All Categories */}
         <div className="text-center mt-12">
           <Link
             href="/product-catalog"
-            className="inline-flex items-center px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-blue-700 transition-smooth">
-
+            className="inline-flex items-center px-8 py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-blue-700 transition-smooth"
+          >
             {currentLanguage === 'fr' ? 'Voir Toutes les Catégories' : 'عرض جميع الفئات'}
             <Icon name="ArrowRightIcon" size={20} className="ml-2 rtl:ml-0 rtl:mr-2" />
           </Link>
         </div>
       </div>
-    </section>);
-
+    </section>
+  );
 };
 
 export default CategoryNavigation;
