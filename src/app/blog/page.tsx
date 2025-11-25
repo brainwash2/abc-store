@@ -1,69 +1,87 @@
 'use client';
 
-import React from 'react';
-import Header from '@/components/common/Header';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
+import { Calendar, ArrowRight, Loader2 } from 'lucide-react';
+import Header from '@/components/common/Header';
 
-export default function BlogPage() {
-  const articles = [
-    {
-      id: 1,
-      title: "Pourquoi la RTX 4060 est la reine du 1080p",
-      category: "Review Hardware",
-      image: "https://images.unsplash.com/photo-1591488320449-011701bb6704?q=80&w=800&auto=format&fit=crop",
-      excerpt: "Nous avons testé la dernière carte de NVIDIA sur 20 jeux. Voici les résultats surprenants...",
-      slug: "review-rtx-4060",
-      date: "22 Nov 2025"
-    },
-    {
-      id: 2,
-      title: "Top 5 des Cryptos à surveiller en 2025",
-      category: "Crypto & Web3",
-      image: "https://images.unsplash.com/photo-1518546305927-5a555bb7020d?q=80&w=800&auto=format&fit=crop",
-      excerpt: "Le marché bouge. Voici les projets qui construisent le futur de la finance décentralisée.",
-      slug: "top-crypto-2025",
-      date: "20 Nov 2025"
-    },
-    {
-      id: 3,
-      title: "Guide: Comment monter son PC Gamer",
-      category: "Tutoriel",
-      image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?q=80&w=800&auto=format&fit=crop",
-      excerpt: "Pas à pas : du choix des composants à l'installation de Windows. Un guide complet.",
-      slug: "guide-pc-gamer",
-      date: "18 Nov 2025"
-    }
-  ];
+export default function PublicBlogPage() {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const fetchPosts = async () => {
+    const { data } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('is_published', true)
+      .order('created_at', { ascending: false });
+
+    if (data) setPosts(data);
+    setLoading(false);
+  };
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Header isAuthenticated={false} />
-      <main className="pt-24 pb-12 px-4 max-w-6xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-black text-slate-900 mb-4">Actualités Tech & Crypto 🚀</h1>
-          <p className="text-slate-500 text-lg">Les dernières nouvelles du monde technologique.</p>
+      <Header cartItemCount={0} isAuthenticated={false} currentLanguage="fr" onLanguageChange={() => {}} onCartClick={() => {}} onAccountClick={() => {}} />
+
+      <main className="pt-24 pb-12 max-w-7xl mx-auto px-4">
+        <div className="text-center mb-16">
+          <h1 className="text-4xl font-bold text-slate-900 mb-4">Le Blog Tech</h1>
+          <p className="text-slate-500 max-w-2xl mx-auto">
+            Actualités et guides officiels de ABC Informatique.
+          </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {articles.map((article) => (
-            <Link key={article.id} href={`/blog/${article.slug}`} className="group flex flex-col bg-white rounded-2xl overflow-hidden border border-slate-100 hover:shadow-xl transition-all duration-300">
-              <div className="h-48 bg-slate-200 relative overflow-hidden">
-                 <img src={article.image} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
-                 <span className="absolute top-4 left-4 bg-black/60 text-white text-xs font-bold px-3 py-1 rounded-full backdrop-blur-sm">
-                   {article.category}
-                 </span>
-              </div>
-              <div className="p-6 flex-1 flex flex-col">
-                <div className="text-xs text-slate-400 mb-2">{article.date}</div>
-                <h2 className="text-xl font-bold mb-3 group-hover:text-primary transition-colors line-clamp-2">{article.title}</h2>
-                <p className="text-slate-500 text-sm mb-4 line-clamp-3 flex-1">{article.excerpt}</p>
-                <span className="text-primary font-bold text-sm flex items-center gap-2 mt-auto">
-                  Lire l'article <span className="group-hover:translate-x-1 transition-transform">→</span>
-                </span>
-              </div>
-            </Link>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex justify-center py-20"><Loader2 className="animate-spin text-primary" size={40} /></div>
+        ) : posts.length === 0 ? (
+          <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
+            <p className="text-xl text-slate-400">Aucun article publié pour le moment.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {posts.map((post) => (
+              <article key={post.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 group">
+                <div className="h-48 overflow-hidden relative bg-slate-200">
+                  <img 
+                    src={post.image_url || 'https://via.placeholder.com/800x400'} 
+                    alt={post.title}
+                    className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                    onError={(e) => (e.currentTarget.src = 'https://via.placeholder.com/800x400?text=No+Image')}
+                  />
+                  <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-violet-700">
+                    {post.category}
+                  </div>
+                </div>
+                
+                <div className="p-6">
+                  <div className="flex items-center gap-2 text-slate-400 text-sm mb-3">
+                    <Calendar size={14} />
+                    {new Date(post.created_at).toLocaleDateString('fr-FR')}
+                  </div>
+                  
+                  <h2 className="text-xl font-bold text-slate-900 mb-3 line-clamp-2 group-hover:text-violet-600">
+                    {post.title}
+                  </h2>
+                  
+                  <p className="text-slate-500 text-sm line-clamp-3 mb-6">
+                    {post.excerpt}
+                  </p>
+                  
+                  {/* Link to the Single Article Page (We will build this next if needed) */}
+                  <button className="inline-flex items-center gap-2 text-violet-600 font-bold text-sm hover:gap-3 transition-all">
+                    Lire l'article <ArrowRight size={16} />
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );
