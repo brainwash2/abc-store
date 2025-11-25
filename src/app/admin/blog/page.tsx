@@ -39,7 +39,7 @@ export default function AdminBlogList() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Blog & Actualités</h1>
+        <h1 className="text-3xl font-bold text-red-600">BLOG V2 (DEBUG MODE)</h1>
           <p className="text-slate-500">Gérez vos articles pour le SEO et l'engagement client</p>
         </div>
         <Link href="/admin/blog/add">
