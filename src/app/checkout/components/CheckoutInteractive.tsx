@@ -92,7 +92,7 @@ const CheckoutInteractive = () => {
   const handleNextStep = () => { if (validateStep(currentStep) && currentStep < 3) setCurrentStep(currentStep + 1); };
   const handlePreviousStep = () => { if (currentStep > 1) setCurrentStep(currentStep - 1); };
 
-  // --- THE FIXED DB LOGIC ---
+  // --- THE FIXED DB LOGIC + EMAIL TRIGGER ---
   const handlePlaceOrder = async () => {
     if (!validateStep(2)) return;
     setIsProcessing(true);
@@ -123,13 +123,36 @@ const CheckoutInteractive = () => {
         throw error;
       }
 
-      // 3. Handle WhatsApp Redirect
+      // 3. TRIGGER EMAIL (New Phase 5 Logic)
+      // We only send email if we have a user email address
+      if (user && user.email) {
+        try {
+          await fetch('/api/emails/send', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              email: user.email,
+              name: user.user_metadata?.full_name || "Client",
+              orderId: order.id,
+              total: total
+            }),
+          });
+          console.log("Email trigger sent successfully");
+        } catch (emailError) {
+          // We catch the error here so it doesn't stop the redirect
+          console.error("Failed to send email confirmation:", emailError);
+        }
+      }
+
+      // 4. Handle WhatsApp Redirect
       if (selectedPaymentMethod === 'whatsapp') {
         const message = encodeURIComponent(`Bonjour ABC, Commande #${order.id.slice(0,8)} confirmée.`);
         window.open(`https://wa.me/213555123456?text=${message}`, '_blank');
       }
 
-      // 4. Success Redirect
+      // 5. Success Redirect
       router.push(`/order-details?order_id=${order.id}&status=success`);
 
     } catch (error: any) {
