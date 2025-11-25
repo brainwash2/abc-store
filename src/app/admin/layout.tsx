@@ -23,7 +23,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     const checkAdmin = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user || user.email !== 'admin@abc.com') { // Replace with your admin email
+      // Compare against the hidden variable instead of hardcoded text
+if (!user || user.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL) { // Replace with your admin email
         router.push('/login');
       } else {
         setLoading(false);
