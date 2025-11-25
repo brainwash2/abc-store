@@ -1,90 +1,126 @@
 'use client';
 
-import React, { useState } from 'react';
-import Link from 'next/link';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { Mail, Lock, Loader2, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { Loader2, AlertCircle } from 'lucide-react'; // Make sure you have lucide-react installed
 
 export default function LoginPage() {
   const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ email: '', password: '' });
+
+  // Optional: Auto-redirect if already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        // Redirect based on who they are. 
+        // If you are testing Admin, you might want to go to /admin
+        // For now, let's send everyone to /user to be safe
+        router.push('/user'); 
+      }
+    };
+    checkSession();
+  }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError(null);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: formData.email,
-      password: formData.password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setError("Email ou mot de passe incorrect.");
-      setLoading(false);
-    } else {
-      router.push('/user/dashboard'); // Redirects to the future dashboard
-      router.refresh();
+      if (error) {
+        throw error;
+      }
+
+      // Login Successful!
+      // Check if it's the admin email to redirect correctly
+      // Note: We use the public env var for the check
+      const isAdmin = email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
+      
+      if (isAdmin) {
+        router.push('/admin');
+      } else {
+        router.push('/user');
+      }
+      
+      // We do NOT set loading to false here, because the page is redirecting.
+      // If we stop the spinner, the user might click again.
+
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.message || "Une erreur est survenue lors de la connexion.");
+      setLoading(false); // <--- CRITICAL: Stop the spinner if it fails!
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
-      <div className="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full border border-slate-100">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
+      <div className="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-slate-100">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-black text-primary mb-2">Connexion</h1>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Connexion</h1>
           <p className="text-slate-500">Accédez à votre compte ABC Informatique</p>
         </div>
 
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg flex items-center gap-2 text-sm mb-6">
-            <AlertCircle size={16} /> {error}
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3 text-red-700 text-sm">
+            <AlertCircle size={20} />
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleLogin} className="space-y-6">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
-            <div className="relative">
-              <Mail className="absolute left-3 top-3 text-slate-400" size={20} />
-              <input 
-                type="email" 
-                required
-                className="w-full pl-10 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
-                placeholder="nom@exemple.com"
-                onChange={(e) => setFormData({...formData, email: e.target.value})}
-              />
-            </div>
-          </div>
-          
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Mot de passe</label>
-            <div className="relative">
-              <Lock className="absolute left-3 top-3 text-slate-400" size={20} />
-              <input 
-                type="password" 
-                required
-                className="w-full pl-10 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
-                placeholder="••••••••"
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-              />
-            </div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-600 focus:border-transparent outline-none transition-all"
+              placeholder="nom@exemple.com"
+            />
           </div>
 
-          <button 
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Mot de passe</label>
+            <input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full p-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-600 focus:border-transparent outline-none transition-all"
+              placeholder="••••••••"
+            />
+          </div>
+
+          <button
+            type="submit"
             disabled={loading}
-            className="w-full bg-primary text-white py-3 rounded-lg font-bold hover:opacity-90 transition-opacity flex justify-center"
+            className="w-full bg-slate-900 text-white py-3 rounded-lg font-bold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? <Loader2 className="animate-spin" /> : "Se connecter"}
+            {loading ? (
+              <>
+                <Loader2 className="animate-spin" size={20} /> Connexion...
+              </>
+            ) : (
+              'Se connecter'
+            )}
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-slate-500">
           Pas encore de compte ?{' '}
-          <Link href="/register" className="text-primary font-bold hover:underline">
+          <Link href="/register" className="text-violet-600 font-bold hover:underline">
             Créer un compte
           </Link>
         </div>
