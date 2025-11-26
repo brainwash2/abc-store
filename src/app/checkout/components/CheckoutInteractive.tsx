@@ -8,20 +8,12 @@ import CheckoutProgress from './CheckoutProgress';
 import DeliverySection from './DeliverySection';
 import PaymentSection from './PaymentSection';
 import OrderSummary from './OrderSummary';
-import { supabase } from '@/lib/supabase'; // Import Supabase
-
-interface CartItem {
-  id: number;
-  name: string;
-  price: number;
-  quantity: number;
-  image: string;
-  alt: string;
-  specifications: string;
-}
+import { supabase } from '@/lib/supabase';
+import { useCartStore } from '@/store/useCart'; // <--- REAL CART
 
 const CheckoutInteractive = () => {
   const router = useRouter();
+  const { items, clearCart } = useCartStore(); // <--- USE STORE
   const [currentLanguage, setCurrentLanguage] = useState<'fr' | 'ar'>('fr');
   const [currentStep, setCurrentStep] = useState(1);
   const [selectedAddress, setSelectedAddress] = useState<number | null>(1);
@@ -31,29 +23,8 @@ const CheckoutInteractive = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [errors, setErrors] = useState<{[key: string]: string;}>({});
 
-  // Mock cart data (Ideally this comes from your Cart Store)
-  const cartItems: CartItem[] = [
-    {
-      id: 1,
-      name: "Ordinateur Portable ASUS VivoBook 15",
-      price: 89000,
-      quantity: 1,
-      image: "https://images.unsplash.com/photo-1666926785795-936c30b52bb0",
-      alt: "Silver ASUS VivoBook laptop",
-      specifications: "Intel Core i5, 8GB RAM, 512GB SSD"
-    },
-    {
-      id: 2,
-      name: "Souris Gaming Logitech G502",
-      price: 8500,
-      quantity: 2,
-      image: "https://images.unsplash.com/photo-1564718944129-22ad7478b856",
-      alt: "Black gaming mouse",
-      specifications: "RGB, 25600 DPI"
-    }
-  ];
-
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // Calculate totals dynamically from STORE items
+  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const deliveryPrice = selectedDeliveryMethod === 'standard' ? 500 : selectedDeliveryMethod === 'express' ? 1200 : 0;
   const tax = Math.round(subtotal * 0.19);
   const total = subtotal + deliveryPrice + tax;
@@ -92,46 +63,41 @@ const CheckoutInteractive = () => {
   const handleNextStep = () => { if (validateStep(currentStep) && currentStep < 3) setCurrentStep(currentStep + 1); };
   const handlePreviousStep = () => { if (currentStep > 1) setCurrentStep(currentStep - 1); };
 
-  // --- THE FIXED DB LOGIC + EMAIL TRIGGER ---
+  // --- REAL ORDER LOGIC ---
   const handlePlaceOrder = async () => {
     if (!validateStep(2)) return;
     setIsProcessing(true);
 
     try {
-      // 1. Get the current user (if logged in)
       const { data: { user } } = await supabase.auth.getUser();
 
-      // 2. Insert into Database
+      // 1. Insert Order into Supabase
       const { data: order, error } = await supabase
         .from('orders')
         .insert([
           {
+            user_id: user?.id || null,
             customer_name: user?.user_metadata?.full_name || "Client Web",
-            customer_phone: "0550 12 34 56",
+            customer_phone: "0550 12 34 56", // Ideally get this from address form
             wilaya: "Alger",
             address: "15 Rue Didouche Mourad",
             total_amount: total,
             payment_method: selectedPaymentMethod,
             status: 'pending',
-            user_id: user?.id || null // Link to user if exists, otherwise null
+            items: items // Store the cart items JSON
           }
         ])
         .select()
         .single();
 
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
 
-      // 3. TRIGGER EMAIL (New Phase 5 Logic)
-      // We only send email if we have a user email address
-      if (user && user.email) {
+      // 2. Send Email via Resend API
+      if (user?.email) {
         try {
           await fetch('/api/emails/send', {
             method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               email: user.email,
               name: user.user_metadata?.full_name || "Client",
@@ -139,20 +105,19 @@ const CheckoutInteractive = () => {
               total: total
             }),
           });
-          console.log("Email trigger sent successfully");
-        } catch (emailError) {
-          // We catch the error here so it doesn't stop the redirect
-          console.error("Failed to send email confirmation:", emailError);
+        } catch (e) {
+          console.error("Email failed but order saved", e);
         }
       }
 
-      // 4. Handle WhatsApp Redirect
+      // 3. Clear Cart & Redirect
+      clearCart();
+      
       if (selectedPaymentMethod === 'whatsapp') {
-        const message = encodeURIComponent(`Bonjour ABC, Commande #${order.id.slice(0,8)} confirmée.`);
+        const message = encodeURIComponent(`Bonjour ABC, Commande #${order.id.slice(0,8)} confirmée. Total: ${total} DA`);
         window.open(`https://wa.me/213555123456?text=${message}`, '_blank');
       }
 
-      // 5. Success Redirect
       router.push(`/order-details?order_id=${order.id}&status=success`);
 
     } catch (error: any) {
@@ -169,7 +134,7 @@ const CheckoutInteractive = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header
-        cartItemCount={3}
+        cartItemCount={items.length} // Real count
         isAuthenticated={true}
         currentLanguage={currentLanguage}
         onLanguageChange={handleLanguageChange}
@@ -252,9 +217,10 @@ const CheckoutInteractive = () => {
             </div>
 
             <div className="lg:col-span-1">
+              {/* Pass Real Items to Summary */}
               <OrderSummary
                 currentLanguage={currentLanguage}
-                cartItems={cartItems}
+                cartItems={items as any} 
                 deliveryPrice={deliveryPrice}
                 subtotal={subtotal}
                 total={total} 

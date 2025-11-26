@@ -26,11 +26,10 @@ const ProductShowcase = ({ currentLanguage }: ProductShowcaseProps) => {
 
   useEffect(() => {
     const fetchProducts = async () => {
-      // Fetch 4 products from the Real Database
       const { data } = await supabase
         .from('products')
         .select('*')
-        .limit(4);
+        .limit(8); // Fetch more for scrolling
       
       if (data) setProducts(data);
       setLoading(false);
@@ -54,23 +53,20 @@ const ProductShowcase = ({ currentLanguage }: ProductShowcaseProps) => {
   };
 
   const handleAddToCart = (product: Product) => {
-    // 🛠️ FIX: Cast to 'any' to solve the TypeScript error
     addItem({
       id: product.id.toString(),
       name: product.name,
-      title: product.name, 
+      title: product.name,
       price: product.price,
       image: product.image_url,
       quantity: 1
-    } as any); 
-
+    } as any);
     alert(currentLanguage === 'fr' ? "Ajouté au panier !" : "تمت الإضافة إلى السلة!");
   };
 
   return (
-    <section className="py-16 bg-white">
+    <section className="py-16 bg-white overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        {/* Header */}
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-slate-900 mb-4">
             {content[currentLanguage].title}
@@ -80,36 +76,31 @@ const ProductShowcase = ({ currentLanguage }: ProductShowcaseProps) => {
           </p>
         </div>
 
-        {/* Loading State */}
         {loading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="animate-spin text-primary" size={40} />
           </div>
         ) : products.length === 0 ? (
           <div className="text-center py-12 text-slate-400">
-            Aucun produit disponible. (Ajoutez-en depuis l'Admin !)
+            Aucun produit disponible.
           </div>
         ) : (
-          /* Products Grid */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          /* 👇 CAROUSEL LAYOUT (Horizontal Scroll) */
+          <div className="flex overflow-x-auto gap-6 pb-8 snap-x snap-mandatory scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
             {products.map((product) => (
-              <div key={product.id} className="group bg-white border border-slate-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300">
+              <div key={product.id} className="min-w-[280px] md:min-w-[300px] snap-center group bg-white border border-slate-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300">
                 
-                {/* Image Container - Updated for better look */}
                 <div className="relative h-64 bg-white p-0 flex items-center justify-center overflow-hidden">
                   <img 
                     src={product.image_url || 'https://via.placeholder.com/300'} 
                     alt={product.name}
-                    // Changed to object-cover to fill the box, added transition
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
-                  {/* Category Badge */}
                   <div className="absolute top-3 left-3 bg-black/70 backdrop-blur text-white rounded-md px-3 py-1 text-xs font-bold shadow-sm">
                     {product.category}
                   </div>
                 </div>
 
-                {/* Info */}
                 <div className="p-5">
                   <h3 className="font-bold text-slate-900 mb-1 truncate" title={product.name}>
                     {product.name}
@@ -125,7 +116,6 @@ const ProductShowcase = ({ currentLanguage }: ProductShowcaseProps) => {
                     <button 
                       onClick={() => handleAddToCart(product)}
                       className="p-2 bg-slate-100 text-slate-900 rounded-lg hover:bg-primary hover:text-white transition-colors"
-                      title={content[currentLanguage].addToCart}
                     >
                       <ShoppingCart size={20} />
                     </button>
@@ -136,8 +126,7 @@ const ProductShowcase = ({ currentLanguage }: ProductShowcaseProps) => {
           </div>
         )}
 
-        {/* View All Link */}
-        <div className="text-center mt-12">
+        <div className="text-center mt-8">
           <Link href="/product-catalog" className="text-primary font-semibold hover:underline">
             {currentLanguage === 'fr' ? 'Voir tous les produits →' : '← عرض جميع المنتجات'}
           </Link>

@@ -11,10 +11,9 @@ export default function AddProductPage() {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name_fr: '',
-    name_ar: '',
     price: '',
     category: 'Laptops',
-    brand: '',
+    brand: '', // Added Brand
     stock: '1',
     image_url: '',
     description_fr: ''
@@ -28,17 +27,15 @@ export default function AddProductPage() {
     e.preventDefault();
     setLoading(true);
 
-    // 1. Insert into Supabase
     const { error } = await supabase.from('products').insert([
       {
-        name_fr: formData.name_fr,
-        name_ar: formData.name_ar,
+        name: formData.name_fr, // Map name_fr to name
         price: Number(formData.price),
         category: formData.category,
-        brand: formData.brand,
+        brand: formData.brand, // Save Brand
         stock: Number(formData.stock),
         image_url: formData.image_url,
-        description_fr: formData.description_fr,
+        description: formData.description_fr,
         is_new: true
       }
     ]);
@@ -46,11 +43,10 @@ export default function AddProductPage() {
     setLoading(false);
 
     if (error) {
-      alert('Erreur lors de l\'ajout: ' + error.message);
+      alert('Erreur: ' + error.message);
     } else {
-      // 2. Redirect back to list on success
       router.push('/admin/products');
-      router.refresh(); // Force refresh to show new data
+      router.refresh();
     }
   };
 
@@ -65,15 +61,15 @@ export default function AddProductPage() {
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 shadow-sm p-8 space-y-6">
         
-        {/* Basic Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Nom (Français)</label>
+            <label className="block text-sm font-medium text-slate-700 mb-2">Nom du produit</label>
             <input required name="name_fr" onChange={handleChange} placeholder="Ex: HP Pavilion 15" className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
+          {/* 👇 ADDED BRAND FIELD */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-2">Nom (Arabe)</label>
-            <input required name="name_ar" onChange={handleChange} placeholder="مثال: كمبيوتر محمول" className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-right" />
+            <label className="block text-sm font-medium text-slate-700 mb-2">Marque (Brand)</label>
+            <input required name="brand" onChange={handleChange} placeholder="Ex: HP, Dell, Apple" className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
           </div>
         </div>
 
@@ -93,18 +89,16 @@ export default function AddProductPage() {
               <option value="Smartphones">Smartphones</option>
               <option value="Gaming">Gaming</option>
               <option value="Accessoires">Accessoires</option>
+              <option value="Components">Composants</option>
             </select>
           </div>
         </div>
 
-        {/* Image URL */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">Image URL</label>
           <input required name="image_url" onChange={handleChange} placeholder="https://..." className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
-          <p className="text-xs text-slate-500 mt-2">Pour l'instant, copiez une URL d'image depuis Google Images ou Unsplash.</p>
         </div>
 
-        {/* Description */}
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-2">Description</label>
           <textarea name="description_fr" onChange={handleChange} rows={4} className="w-full p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
@@ -113,16 +107,10 @@ export default function AddProductPage() {
         <hr className="border-slate-100" />
 
         <div className="flex justify-end">
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
-          >
-            {loading ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-            Enregistrer le produit
+          <button type="submit" disabled={loading} className="bg-blue-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50">
+            {loading ? <Loader2 className="animate-spin" /> : <Save size={20} />} Enregistrer
           </button>
         </div>
-
       </form>
     </div>
   );
