@@ -1,10 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 
 interface AppImageProps {
-    src: string;
+    src?: string | null; // FIX: Allow null or undefined
     alt: string;
     width?: number;
     height?: number;
@@ -33,14 +33,31 @@ function AppImage({
     fill = false,
     sizes,
     onClick,
-    fallbackSrc = '/assets/images/no_image.png',
+    fallbackSrc = 'https://via.placeholder.com/400?text=No+Image', // Default fallback
     ...props
 }: AppImageProps) {
-    const [imageSrc, setImageSrc] = useState(src);
+    // FIX: Ensure we always have a string, even if src is null
+    const initialSrc = src && src.trim() !== '' ? src : fallbackSrc;
+    
+    const [imageSrc, setImageSrc] = useState<string>(initialSrc);
     const [isLoading, setIsLoading] = useState(true);
     const [hasError, setHasError] = useState(false);
 
+    // FIX: Update state if the parent prop changes (e.g. database loads)
+    useEffect(() => {
+        if (src && src.trim() !== '') {
+            setImageSrc(src);
+            setHasError(false);
+        } else {
+            setImageSrc(fallbackSrc);
+        }
+    }, [src, fallbackSrc]);
+
+    // Safety check before running string methods
+    if (!imageSrc) return null;
+
     const isExternal = imageSrc.startsWith('http://') || imageSrc.startsWith('https://');
+    // Local check: starts with / or ./ or data:
     const isLocal = imageSrc.startsWith('/') || imageSrc.startsWith('./') || imageSrc.startsWith('data:');
 
     const handleError = () => {
@@ -58,6 +75,7 @@ function AppImage({
 
     const commonClassName = `${className} ${isLoading ? 'animate-pulse bg-gray-200' : ''} ${onClick ? 'cursor-pointer hover:opacity-90 transition-opacity' : ''}`;
 
+    // CASE 1: External Image (Use standard <img> tag to avoid Next.js config issues)
     if (isExternal && !isLocal) {
         const imgStyle: React.CSSProperties = {};
         if (width) imgStyle.width = width;
@@ -94,6 +112,7 @@ function AppImage({
         );
     }
 
+    // CASE 2: Local Image (Use Next.js <Image> for optimization)
     const imageProps = {
         src: imageSrc,
         alt,
@@ -102,7 +121,7 @@ function AppImage({
         quality,
         placeholder,
         blurDataURL,
-        unoptimized: true,
+        unoptimized: true, // Often safer for dynamic local paths
         onError: handleError,
         onLoad: handleLoad,
         onClick,

@@ -38,57 +38,12 @@ interface SearchSuggestion {
   count?: number;
 }
 
-interface FilterOptions {
-  categories: Array<{id: string;name: {fr: string;ar: string;};count: number;}>;
-  brands: Array<{id: string;name: string;count: number;}>;
-  priceRange: {min: number;max: number;};
-  specifications: {
-    ram: Array<{value: string;count: number;}>;
-    storage: Array<{value: string;count: number;}>;
-    processor: Array<{value: string;count: number;}>;
-  };
-}
-
-interface ActiveFilters {
-  categories: string[];
-  brands: string[];
-  priceRange: {min: number;max: number;};
-  ram: string[];
-  storage: string[];
-  processor: string[];
-}
-
-// --- STATIC DATA ---
-const MOCK_SUGGESTIONS: SearchSuggestion[] = [
-  { id: '1', text: { fr: 'Ordinateur', ar: 'كمبيوتر' }, type: 'category', count: 45 },
-];
-
-const FILTER_OPTIONS = {
-  categories: [
-    { id: 'Laptops', name: { fr: 'Ordinateurs', ar: 'كمبيوتر' }, count: 0 },
-    { id: 'Smartphones', name: { fr: 'Smartphones', ar: 'هواتف' }, count: 0 },
-    { id: 'Gaming', name: { fr: 'Gaming', ar: 'ألعاب' }, count: 0 },
-    { id: 'Accessoires', name: { fr: 'Accessoires', ar: 'إكسسوارات' }, count: 0 }
-  ],
-  brands: [
-    { id: 'HP', name: 'HP', count: 0 },
-    { id: 'Apple', name: 'Apple', count: 0 },
-    { id: 'Samsung', name: 'Samsung', count: 0 },
-    { id: 'Dell', name: 'Dell', count: 0 }
-  ],
-  priceRange: { min: 0, max: 500000 },
-  specifications: { ram: [], storage: [], processor: [] }
-};
-
 const ProductCatalogInteractive = () => {
   // --- STATE ---
   const [isHydrated, setIsHydrated] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState<'fr' | 'ar'>('fr');
   
-  // Added missing search states
   const [searchQuery, setSearchQuery] = useState(''); 
-  const [isSearchLoading, setIsSearchLoading] = useState(false);
-
   const [sortBy, setSortBy] = useState('relevance');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
@@ -97,13 +52,19 @@ const ProductCatalogInteractive = () => {
   // --- REAL DATA STATE ---
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dynamicFilters, setDynamicFilters] = useState<any>({
+    categories: [],
+    brands: [],
+    priceRange: { min: 0, max: 1000000 },
+    specifications: { ram: [], storage: [], processor: [] }
+  });
 
   const addItem = useCartStore((state) => state.addItem);
 
   const [activeFilters, setActiveFilters] = useState({
     categories: [] as string[],
     brands: [] as string[],
-    priceRange: { min: 0, max: 500000 },
+    priceRange: { min: 0, max: 1000000 },
     ram: [] as string[],
     storage: [] as string[],
     processor: [] as string[]
@@ -136,28 +97,81 @@ const ProductCatalogInteractive = () => {
       // Transform Database format to UI format
       const formattedProducts: Product[] = data.map((item: any) => ({
         id: item.id, 
-        name: { fr: item.name_fr, ar: item.name_ar },
+        // Fallback if name_fr/ar columns don't exist yet
+        name: { fr: item.name, ar: item.name }, 
         price: item.price,
-        originalPrice: item.original_price,
+        originalPrice: item.price * 1.1, // Fake original price for demo
         image: item.image_url,
-        alt: item.name_fr,
-        rating: 4.5, // Default
-        reviewCount: 10, // Default
+        alt: item.name,
+        rating: 4.5,
+        reviewCount: 10,
         category: item.category,
-        brand: item.brand,
+        brand: item.brand || 'Generic',
         inStock: item.stock > 0,
-        isNew: item.is_new,
-        specifications: item.specs || {}
+        isNew: true,
+        specifications: item.specifications || {}
       }));
+      
       setProducts(formattedProducts);
+      calculateDynamicFilters(formattedProducts);
     }
     setIsLoading(false);
   };
 
-  // 3. FILTERING LOGIC
+  // 3. CALCULATE FILTERS DYNAMICALLY
+  const calculateDynamicFilters = (items: Product[]) => {
+    const brands: Record<string, number> = {};
+    const categories: Record<string, number> = {};
+    let maxPrice = 0;
+
+    items.forEach(p => {
+      // Count Brands
+      brands[p.brand] = (brands[p.brand] || 0) + 1;
+      // Count Categories
+      categories[p.category] = (categories[p.category] || 0) + 1;
+      // Find Max Price
+      if (p.price > maxPrice) maxPrice = p.price;
+    });
+
+    setDynamicFilters({
+      categories: Object.keys(categories).map(cat => ({
+        id: cat,
+        name: { fr: cat, ar: cat }, // You can map translations here if needed
+        count: categories[cat]
+      })),
+      brands: Object.keys(brands).map(b => ({
+        id: b,
+        name: b,
+        count: brands[b]
+      })),
+      priceRange: { min: 0, max: maxPrice },
+      specifications: { ram: [], storage: [], processor: [] } // Can extend this later
+    });
+  };
+
+  // 4. GENERATE SEARCH SUGGESTIONS DYNAMICALLY
+  const searchSuggestions = useMemo(() => {
+    if (!searchQuery) return [];
+    const query = searchQuery.toLowerCase();
+    
+    // Find matching products
+    const productMatches = products
+      .filter(p => p.name.fr.toLowerCase().includes(query))
+      .slice(0, 3)
+      .map(p => ({
+        id: p.id.toString(),
+        text: p.name,
+        type: 'product' as const
+      }));
+
+    return productMatches;
+  }, [searchQuery, products]);
+
+  // 5. FILTERING LOGIC
   const filteredAndSortedProducts = useMemo(() => {
     let filtered = products;
 
+    // Search
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter((product) =>
@@ -166,13 +180,21 @@ const ProductCatalogInteractive = () => {
       );
     }
 
+    // Category Filter
     if (activeFilters.categories.length > 0) {
       filtered = filtered.filter((product) => activeFilters.categories.includes(product.category));
     }
 
+    // Brand Filter
     if (activeFilters.brands.length > 0) {
       filtered = filtered.filter((product) => activeFilters.brands.includes(product.brand));
     }
+
+    // Price Filter
+    filtered = filtered.filter(p => 
+      p.price >= activeFilters.priceRange.min && 
+      p.price <= activeFilters.priceRange.max
+    );
 
     // Sorting
     switch (sortBy) {
@@ -185,23 +207,23 @@ const ProductCatalogInteractive = () => {
   }, [products, searchQuery, activeFilters, sortBy, currentLanguage]);
 
   // HANDLERS
-  const handleAddToCart = (productId: any) => {
+  const handleAddToCart = (productId: number) => {
     const product = products.find(p => p.id === productId);
     if (product) {
       addItem({
         id: product.id.toString(),
-        title: currentLanguage === 'fr' ? product.name.fr : product.name.ar,
+        name: currentLanguage === 'fr' ? product.name.fr : product.name.ar,
         price: product.price,
         image: product.image,
-        category: product.category,
-        brand: product.brand
-      });
+        quantity: 1
+      } as any);
+      alert("Ajouté au panier !");
     }
   };
 
   const handleLanguageChange = (lang: 'fr' | 'ar') => setCurrentLanguage(lang);
 
-  if (!isHydrated) return <div>Loading...</div>;
+  if (!isHydrated) return <div className="min-h-screen flex items-center justify-center">Chargement...</div>;
 
   return (
     <div className="min-h-screen bg-background">
@@ -211,7 +233,7 @@ const ProductCatalogInteractive = () => {
         onLanguageChange={handleLanguageChange}
       />
 
-      <main className="pt-16">
+      <main className="pt-24">
         <div className="max-w-7xl mx-auto px-4 py-8">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-text-primary mb-4">
@@ -222,19 +244,22 @@ const ProductCatalogInteractive = () => {
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               onSearchSubmit={() => {}}
-              suggestions={MOCK_SUGGESTIONS}
-              isLoading={isSearchLoading}
+              suggestions={searchSuggestions}
+              isLoading={false}
             />
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <div className="hidden lg:block">
               <FilterPanel
-                filterOptions={FILTER_OPTIONS}
+                filterOptions={dynamicFilters}
                 activeFilters={activeFilters}
                 currentLanguage={currentLanguage}
                 onFiltersChange={setActiveFilters}
-                onClearFilters={() => {}}
+                onClearFilters={() => setActiveFilters({
+                  categories: [], brands: [], priceRange: { min: 0, max: 1000000 },
+                  ram: [], storage: [], processor: []
+                })}
                 isOpen={false}
                 onClose={() => {}}
               />
@@ -270,10 +295,10 @@ const ProductCatalogInteractive = () => {
           </div>
           
           {isFilterPanelOpen && (
-             <div className="lg:hidden fixed inset-0 z-50 bg-white p-4">
+             <div className="lg:hidden fixed inset-0 z-50 bg-white p-4 overflow-y-auto">
                 <button onClick={() => setIsFilterPanelOpen(false)} className="mb-4 text-red-500 font-bold">Fermer</button>
                 <FilterPanel
-                  filterOptions={FILTER_OPTIONS}
+                  filterOptions={dynamicFilters}
                   activeFilters={activeFilters}
                   currentLanguage={currentLanguage}
                   onFiltersChange={setActiveFilters}

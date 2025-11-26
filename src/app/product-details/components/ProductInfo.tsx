@@ -1,24 +1,35 @@
+'use client';
+
 import React from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { useCartStore } from '@/store/useCart';
 
 interface ProductInfoProps {
-  product: {
-    name: string;
-    price: number;
-    originalPrice?: number;
-    currency: string;
-    availability: 'in-stock' | 'out-of-stock' | 'limited';
-    rating: number;
-    reviewCount: number;
-    brand: string;
-    model: string;
-    sku: string;
-  };
-  currentLanguage: 'fr' | 'ar';
+  id: any; // Added ID
+  name: string; // Simplified props to match parent
+  price: number;
+  rating: number;
+  reviewCount: number;
+  stockStatus: string; // 'In Stock' or 'Out of Stock'
+  description: string;
+  currentLanguage?: 'fr' | 'ar'; // Optional
 }
 
-const ProductInfo = ({ product, currentLanguage }: ProductInfoProps) => {
+const ProductInfo = ({ 
+  id, 
+  name, 
+  price, 
+  rating, 
+  reviewCount, 
+  stockStatus, 
+  description,
+  currentLanguage = 'fr' 
+}: ProductInfoProps) => {
+  
+  const addItem = useCartStore((state) => state.addItem);
+
   const formatPrice = (price: number) => {
+    if (!price) return '0 DZD';
     return new Intl.NumberFormat('fr-DZ', {
       style: 'currency',
       currency: 'DZD',
@@ -26,53 +37,42 @@ const ProductInfo = ({ product, currentLanguage }: ProductInfoProps) => {
     }).format(price);
   };
 
+  // Map DB status to UI status
+  const availability = stockStatus === 'In Stock' ? 'in-stock' : 'out-of-stock';
+
   const getAvailabilityText = () => {
     const texts = {
       'in-stock': { fr: 'En stock', ar: 'متوفر' },
       'out-of-stock': { fr: 'Rupture de stock', ar: 'غير متوفر' },
-      'limited': { fr: 'Stock limité', ar: 'مخزون محدود' }
     };
-    return texts[product.availability][currentLanguage];
+    return texts[availability][currentLanguage];
   };
 
   const getAvailabilityColor = () => {
-    const colors = {
-      'in-stock': 'text-success',
-      'out-of-stock': 'text-error',
-      'limited': 'text-warning'
-    };
-    return colors[product.availability];
+    return availability === 'in-stock' ? 'text-green-600' : 'text-red-600';
+  };
+
+  const handleAddToCart = () => {
+    // 🛡️ SAFETY CHECK: Don't run if ID is missing
+    if (!id) return;
+
+    addItem({
+      id: id.toString(),
+      name: name,
+      price: price,
+      image: '', 
+      quantity: 1
+    } as any);
+    alert("Ajouté au panier !");
   };
 
   const renderStars = (rating: number) => {
     const stars = [];
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-
-    for (let i = 0; i < fullStars; i++) {
+    for (let i = 0; i < 5; i++) {
       stars.push(
-        <Icon key={i} name="StarIcon" size={16} className="text-accent" variant="solid" />
+        <Icon key={i} name="StarIcon" size={16} className={i < Math.floor(rating) ? "text-yellow-400" : "text-gray-300"} variant="solid" />
       );
     }
-
-    if (hasHalfStar) {
-      stars.push(
-        <div key="half" className="relative">
-          <Icon name="StarIcon" size={16} className="text-muted" />
-          <div className="absolute inset-0 overflow-hidden w-1/2">
-            <Icon name="StarIcon" size={16} className="text-accent" variant="solid" />
-          </div>
-        </div>
-      );
-    }
-
-    const emptyStars = 5 - Math.ceil(rating);
-    for (let i = 0; i < emptyStars; i++) {
-      stars.push(
-        <Icon key={`empty-${i}`} name="StarIcon" size={16} className="text-muted" />
-      );
-    }
-
     return stars;
   };
 
@@ -80,109 +80,50 @@ const ProductInfo = ({ product, currentLanguage }: ProductInfoProps) => {
     <div className="space-y-6">
       {/* Product Title */}
       <div>
-        <h1 className="text-3xl font-bold text-text-primary mb-2">
-          {product.name}
-        </h1>
-        <div className="flex items-center space-x-4 rtl:space-x-reverse text-sm text-text-secondary">
-          <span>
-            {currentLanguage === 'fr' ? 'Marque:' : 'العلامة التجارية:'} {product.brand}
-          </span>
-          <span>
-            {currentLanguage === 'fr' ? 'Modèle:' : 'الطراز:'} {product.model}
-          </span>
-          <span>
-            {currentLanguage === 'fr' ? 'SKU:' : 'رمز المنتج:'} {product.sku}
-          </span>
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">{name}</h1>
+        <div className="flex items-center space-x-4 text-sm text-slate-500">
+          {/* 🛡️ SAFETY CHECK: Only show SKU if ID exists */}
+          <span>SKU: {id ? id.toString().slice(0, 8) : '...'}</span>
         </div>
       </div>
 
-      {/* Rating and Reviews */}
-      <div className="flex items-center space-x-3 rtl:space-x-reverse">
-        <div className="flex items-center space-x-1 rtl:space-x-reverse">
-          {renderStars(product.rating)}
+      {/* Rating */}
+      <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-1">
+          {renderStars(rating || 0)}
         </div>
-        <span className="text-lg font-semibold text-text-primary">
-          {product.rating.toFixed(1)}
-        </span>
-        <span className="text-text-secondary">
-          ({product.reviewCount} {currentLanguage === 'fr' ? 'avis' : 'تقييم'})
-        </span>
+        <span className="text-lg font-semibold text-slate-900">{(rating || 0).toFixed(1)}</span>
+        <span className="text-slate-500">({reviewCount || 0} avis)</span>
       </div>
 
       {/* Price */}
       <div className="space-y-2">
-        <div className="flex items-baseline space-x-3 rtl:space-x-reverse">
-          <span className="text-4xl font-bold text-primary">
-            {formatPrice(product.price)}
-          </span>
-          {product.originalPrice && product.originalPrice > product.price && (
-            <span className="text-xl text-text-secondary line-through">
-              {formatPrice(product.originalPrice)}
-            </span>
-          )}
-        </div>
-        
-        {product.originalPrice && product.originalPrice > product.price && (
-          <div className="inline-flex items-center px-2 py-1 bg-accent/10 text-accent text-sm font-medium rounded">
-            <Icon name="TagIcon" size={14} className="mr-1 rtl:mr-0 rtl:ml-1" />
-            {currentLanguage === 'fr' ? 'Économisez' : 'وفر'} {formatPrice(product.originalPrice - product.price)}
-          </div>
-        )}
-
-        {/* Currency Alternatives */}
-        <div className="text-sm text-text-secondary">
-          <span className="mr-2 rtl:mr-0 rtl:ml-2">
-            {currentLanguage === 'fr' ? 'Environ:' : 'تقريباً:'}
-          </span>
-          <span className="mr-4 rtl:mr-0 rtl:ml-4">€{(product.price / 150).toFixed(2)}</span>
-          <span>${(product.price / 135).toFixed(2)}</span>
+        <div className="flex items-baseline space-x-3">
+          <span className="text-4xl font-bold text-violet-600">{formatPrice(price)}</span>
         </div>
       </div>
 
       {/* Availability */}
-      <div className="flex items-center space-x-2 rtl:space-x-reverse">
-        <Icon 
-          name={product.availability === 'in-stock' ? 'CheckCircleIcon' : 
-                product.availability === 'out-of-stock' ? 'XCircleIcon' : 'ExclamationTriangleIcon'} 
-          size={20} 
-          className={getAvailabilityColor()} 
-        />
+      <div className="flex items-center space-x-2">
+        <Icon name={availability === 'in-stock' ? 'CheckCircleIcon' : 'XCircleIcon'} size={20} className={getAvailabilityColor()} />
         <span className={`font-medium ${getAvailabilityColor()}`}>
           {getAvailabilityText()}
         </span>
       </div>
 
-      {/* Key Features */}
-      <div className="bg-muted rounded-lg p-4">
-        <h3 className="font-semibold text-text-primary mb-3">
-          {currentLanguage === 'fr' ? 'Points clés' : 'النقاط الرئيسية'}
-        </h3>
-        <ul className="space-y-2 text-sm text-text-secondary">
-          <li className="flex items-start space-x-2 rtl:space-x-reverse">
-            <Icon name="CheckIcon" size={16} className="text-success mt-0.5 flex-shrink-0" />
-            <span>
-              {currentLanguage === 'fr' ?'Processeur Intel Core i7 de 12ème génération' :'معالج Intel Core i7 الجيل الثاني عشر'}
-            </span>
-          </li>
-          <li className="flex items-start space-x-2 rtl:space-x-reverse">
-            <Icon name="CheckIcon" size={16} className="text-success mt-0.5 flex-shrink-0" />
-            <span>
-              {currentLanguage === 'fr' ?'16 GB RAM DDR5 + 512 GB SSD NVMe' :'16 جيجابايت رام DDR5 + 512 جيجابايت SSD NVMe'}
-            </span>
-          </li>
-          <li className="flex items-start space-x-2 rtl:space-x-reverse">
-            <Icon name="CheckIcon" size={16} className="text-success mt-0.5 flex-shrink-0" />
-            <span>
-              {currentLanguage === 'fr' ?'Écran 15.6" Full HD IPS' :'شاشة 15.6 بوصة Full HD IPS'}
-            </span>
-          </li>
-          <li className="flex items-start space-x-2 rtl:space-x-reverse">
-            <Icon name="CheckIcon" size={16} className="text-success mt-0.5 flex-shrink-0" />
-            <span>
-              {currentLanguage === 'fr' ?'Garantie constructeur 2 ans' :'ضمان الشركة المصنعة لمدة عامين'}
-            </span>
-          </li>
-        </ul>
+      {/* Description Preview */}
+      <p className="text-slate-600 leading-relaxed line-clamp-3">{description}</p>
+
+      {/* Action Buttons */}
+      <div className="flex gap-4 pt-4">
+        <button 
+          onClick={handleAddToCart}
+          disabled={availability === 'out-of-stock' || !id}
+          className="flex-1 bg-violet-600 text-white py-3 rounded-xl font-bold hover:bg-violet-700 transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Icon name="ShoppingCartIcon" size={20} />
+          {currentLanguage === 'fr' ? 'Ajouter au panier' : 'إضافة إلى السلة'}
+        </button>
       </div>
     </div>
   );

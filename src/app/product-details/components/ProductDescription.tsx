@@ -2,47 +2,56 @@ import React from 'react';
 import Icon from '@/components/ui/AppIcon';
 
 interface ProductDescriptionProps {
-  description: { fr: string; ar: string };
-  features: { fr: string[]; ar: string[] };
-  currentLanguage: 'fr' | 'ar';
+  description: string;
+  specifications?: any; // Changed to accept dynamic object
+  currentLanguage?: 'fr' | 'ar';
 }
 
-const ProductDescription = ({ description, features, currentLanguage }: ProductDescriptionProps) => {
+const ProductDescription = ({ description, specifications, currentLanguage = 'fr' }: ProductDescriptionProps) => {
   return (
-    <div className="bg-surface border border-border rounded-lg p-6 space-y-6">
-      <h2 className="text-2xl font-bold text-text-primary">
-        {currentLanguage === 'fr' ? 'Description du produit' : 'وصف المنتج'}
-      </h2>
-
-      <div className="prose prose-slate max-w-none">
-        <p className="text-text-secondary leading-relaxed whitespace-pre-line">
-          {description[currentLanguage]}
-        </p>
+    <div className="bg-white border border-slate-200 rounded-lg p-8 space-y-8 shadow-sm">
+      
+      {/* Description Section */}
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900 mb-4">
+          {currentLanguage === 'fr' ? 'Description du produit' : 'وصف المنتج'}
+        </h2>
+        <div className="prose prose-slate max-w-none">
+          <p className="text-slate-600 leading-relaxed whitespace-pre-line">
+            {description}
+          </p>
+        </div>
       </div>
 
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold text-text-primary">
-          {currentLanguage === 'fr' ? 'Caractéristiques principales' : 'الخصائص الرئيسية'}
-        </h3>
-        <ul className="space-y-3">
-          {features[currentLanguage].map((feature, index) => (
-            <li key={index} className="flex items-start space-x-3 rtl:space-x-reverse">
-              <Icon name="CheckCircleIcon" size={20} className="text-success mt-0.5 flex-shrink-0" />
-              <span className="text-text-secondary">{feature}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
+      {/* Specifications Section */}
+      {specifications && Object.keys(specifications).length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold text-slate-900 mb-4">
+            {currentLanguage === 'fr' ? 'Caractéristiques techniques' : 'المواصفات التقنية'}
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {Object.entries(specifications).map(([key, value]: [string, any]) => (
+              <div key={key} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <span className="font-medium text-slate-700 capitalize">{key.replace(/_/g, ' ')}</span>
+                <span className="text-slate-500 font-mono text-sm">{String(value)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-      <div className="bg-muted rounded-lg p-4">
-        <div className="flex items-start space-x-3 rtl:space-x-reverse">
-          <Icon name="InformationCircleIcon" size={20} className="text-primary mt-0.5 flex-shrink-0" />
+      {/* Info Box */}
+      <div className="bg-violet-50 rounded-lg p-4 border border-violet-100">
+        <div className="flex items-start space-x-3">
+          <Icon name="InformationCircleIcon" size={24} className="text-violet-600 mt-0.5 flex-shrink-0" />
           <div className="space-y-1">
-            <h4 className="font-medium text-text-primary">
+            <h4 className="font-bold text-violet-900">
               {currentLanguage === 'fr' ? 'Information importante' : 'معلومات مهمة'}
             </h4>
-            <p className="text-sm text-text-secondary">
-              {currentLanguage === 'fr' ?'Ce produit est couvert par une garantie constructeur de 2 ans. Livraison gratuite dans toute l\'Algérie pour les commandes supérieures à 50 000 DZD.' :'هذا المنتج مغطى بضمان الشركة المصنعة لمدة عامين. توصيل مجاني في جميع أنحاء الجزائر للطلبات التي تزيد عن 50,000 دج.'}
+            <p className="text-sm text-violet-700">
+              {currentLanguage === 'fr' 
+                ? 'Ce produit est couvert par une garantie constructeur de 2 ans. Livraison gratuite dans toute l\'Algérie.' 
+                : 'هذا المنتج مغطى بضمان الشركة المصنعة لمدة عامين. توصيل مجاني في جميع أنحاء الجزائر.'}
             </p>
           </div>
         </div>
