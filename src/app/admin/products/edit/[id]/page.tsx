@@ -15,16 +15,25 @@ export default function EditProduct() {
     name: '',
     price: 0,
     category: '',
+    brand: '', // Added Brand
+    stock: 0,
     image_url: '',
-    description: '',
-    specifications: ''
+    description: ''
   });
 
   useEffect(() => {
     const fetchProduct = async () => {
       const { data } = await supabase.from('products').select('*').eq('id', params.id).single();
       if (data) {
-        setFormData(data);
+        setFormData({
+          name: data.name || '',
+          price: data.price || 0,
+          category: data.category || 'Laptops',
+          brand: data.brand || '', // Load Brand
+          stock: data.stock || 0,
+          image_url: data.image_url || '',
+          description: data.description || ''
+        });
         setLoading(false);
       }
     };
@@ -39,8 +48,12 @@ export default function EditProduct() {
     e.preventDefault();
     setSaving(true);
     const { error } = await supabase.from('products').update(formData).eq('id', params.id);
-    if (!error) router.push('/admin/products');
-    else alert(error.message);
+    if (!error) {
+      router.push('/admin/products');
+      router.refresh();
+    } else {
+      alert(error.message);
+    }
     setSaving(false);
   };
 
@@ -54,23 +67,36 @@ export default function EditProduct() {
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white p-6 rounded-xl border shadow-sm space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Nom du produit</label>
-          <input name="name" value={formData.name} onChange={handleChange} className="w-full p-2 border rounded" />
-        </div>
         
         <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Nom du produit</label>
+            <input name="name" value={formData.name} onChange={handleChange} className="w-full p-2 border rounded" />
+          </div>
+          {/* 👇 ADDED BRAND FIELD */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Marque</label>
+            <input name="brand" value={formData.brand} onChange={handleChange} className="w-full p-2 border rounded" placeholder="Ex: HP" />
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-3 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Prix (DA)</label>
             <input name="price" type="number" value={formData.price} onChange={handleChange} className="w-full p-2 border rounded" />
           </div>
           <div>
+            <label className="block text-sm font-medium mb-1">Stock</label>
+            <input name="stock" type="number" value={formData.stock} onChange={handleChange} className="w-full p-2 border rounded" />
+          </div>
+          <div>
             <label className="block text-sm font-medium mb-1">Catégorie</label>
             <select name="category" value={formData.category} onChange={handleChange} className="w-full p-2 border rounded bg-white">
-              <option value="laptops">Laptops</option>
-              <option value="smartphones">Smartphones</option>
-              <option value="accessories">Accessoires</option>
-              <option value="components">Composants</option>
+              <option value="Laptops">Laptops</option>
+              <option value="Smartphones">Smartphones</option>
+              <option value="Gaming">Gaming</option>
+              <option value="Accessoires">Accessoires</option>
+              <option value="Components">Composants</option>
             </select>
           </div>
         </div>
@@ -82,7 +108,7 @@ export default function EditProduct() {
 
         <div>
           <label className="block text-sm font-medium mb-1">Description</label>
-          <textarea name="description" rows={3} value={formData.description} onChange={handleChange} className="w-full p-2 border rounded" />
+          <textarea name="description" rows={4} value={formData.description} onChange={handleChange} className="w-full p-2 border rounded" />
         </div>
 
         <button type="submit" disabled={saving} className="w-full bg-primary text-white py-3 rounded-lg font-bold flex justify-center gap-2">
