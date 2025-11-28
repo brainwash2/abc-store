@@ -38,7 +38,7 @@ const ProductShowcase = ({ currentLanguage }: ProductShowcaseProps) => {
     fetchProducts();
   }, []);
 
-  // Check scroll position to hide/show arrows
+  // Smart Scroll Detection (Hides arrows if you can't scroll further)
   const checkScroll = () => {
     if (scrollContainerRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
@@ -51,7 +51,7 @@ const ProductShowcase = ({ currentLanguage }: ProductShowcaseProps) => {
     const container = scrollContainerRef.current;
     if (container) {
       container.addEventListener('scroll', checkScroll);
-      checkScroll(); // Initial check
+      checkScroll();
     }
     return () => container?.removeEventListener('scroll', checkScroll);
   }, [products]);
@@ -76,39 +76,45 @@ const ProductShowcase = ({ currentLanguage }: ProductShowcaseProps) => {
   const scroll = (direction: 'left' | 'right') => {
     if (scrollContainerRef.current) {
       const { current } = scrollContainerRef;
-      const scrollAmount = 340; // Card width + gap
+      const scrollAmount = 340;
       if (direction === 'left') current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
       else current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
 
   return (
-    <section className="py-24 bg-white relative">
+    <section className="py-24 bg-white relative overflow-hidden">
+      {/* Background decorative blob (Subtle) */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-violet-50 rounded-full blur-3xl opacity-50 -z-10" />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         
-        {/* 1. Centered Header */}
+        {/* 1. Centered Header with Animation */}
         <div className="text-center mb-16 max-w-3xl mx-auto">
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-4xl font-bold text-slate-900 mb-4 tracking-tight"
+            className="text-4xl md:text-5xl font-bold text-slate-900 mb-4 tracking-tight"
           >
             {content[currentLanguage].title}
           </motion.h2>
+          
+          {/* Decorative Line */}
           <motion.div 
             initial={{ opacity: 0, width: 0 }}
-            whileInView={{ opacity: 1, width: "100px" }}
+            whileInView={{ opacity: 1, width: "80px" }}
             viewport={{ once: true }}
             transition={{ delay: 0.2, duration: 0.8 }}
-            className="h-1 bg-violet-600 mx-auto rounded-full mb-4"
+            className="h-1.5 bg-violet-600 mx-auto rounded-full mb-6"
           />
+
           <motion.p 
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
             transition={{ delay: 0.3 }}
-            className="text-slate-500 text-lg"
+            className="text-slate-500 text-lg md:text-xl"
           >
             {content[currentLanguage].subtitle}
           </motion.p>
@@ -121,11 +127,12 @@ const ProductShowcase = ({ currentLanguage }: ProductShowcaseProps) => {
         ) : (
           <div className="relative group/carousel">
             
-            {/* 2. Floating Navigation Arrows */}
+            {/* 2. Floating Navigation Arrows (Vertically Centered) */}
+            {/* Only show on Desktop to keep mobile clean */}
             {canScrollLeft && (
               <button 
                 onClick={() => scroll('left')} 
-                className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 bg-white/90 backdrop-blur shadow-xl border border-slate-100 p-3 rounded-full text-slate-700 hover:scale-110 hover:bg-white transition-all duration-300 hidden md:block"
+                className="absolute -left-4 top-1/2 -translate-y-1/2 z-30 hidden md:flex w-12 h-12 items-center justify-center bg-white/80 backdrop-blur-md border border-slate-200 rounded-full shadow-lg text-slate-700 hover:bg-violet-600 hover:text-white hover:scale-110 transition-all duration-300"
               >
                 <ChevronLeft size={24} />
               </button>
@@ -134,7 +141,7 @@ const ProductShowcase = ({ currentLanguage }: ProductShowcaseProps) => {
             {canScrollRight && (
               <button 
                 onClick={() => scroll('right')} 
-                className="absolute -right-4 top-1/2 -translate-y-1/2 z-30 bg-white/90 backdrop-blur shadow-xl border border-slate-100 p-3 rounded-full text-slate-700 hover:scale-110 hover:bg-white transition-all duration-300 hidden md:block"
+                className="absolute -right-4 top-1/2 -translate-y-1/2 z-30 hidden md:flex w-12 h-12 items-center justify-center bg-white/80 backdrop-blur-md border border-slate-200 rounded-full shadow-lg text-slate-700 hover:bg-violet-600 hover:text-white hover:scale-110 transition-all duration-300"
               >
                 <ChevronRight size={24} />
               </button>
@@ -143,7 +150,7 @@ const ProductShowcase = ({ currentLanguage }: ProductShowcaseProps) => {
             {/* 3. The Carousel Container */}
             <div 
               ref={scrollContainerRef}
-              className="flex overflow-x-auto gap-8 pb-12 snap-x snap-mandatory scrollbar-hide px-2"
+              className="flex overflow-x-auto gap-8 pb-12 snap-x snap-mandatory scrollbar-hide px-4"
               style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
             >
               {products.map((product, index) => (
@@ -153,23 +160,26 @@ const ProductShowcase = ({ currentLanguage }: ProductShowcaseProps) => {
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.5, delay: index * 0.05 }}
-                  className="min-w-[280px] md:min-w-[300px] snap-center bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-violet-100/50 transition-all duration-500 flex-shrink-0 relative overflow-hidden group"
+                  className="min-w-[280px] md:min-w-[320px] snap-center bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-violet-100/50 transition-all duration-500 flex-shrink-0 relative overflow-hidden group"
                 >
                   {/* Image Area */}
-                  <div className="relative h-72 p-6 flex items-center justify-center bg-gradient-to-b from-slate-50 to-white">
+                  <div className="relative h-72 p-8 flex items-center justify-center bg-gradient-to-b from-slate-50 to-white">
                     <Link href={`/product-details/${product.id}`} className="w-full h-full flex items-center justify-center">
                       <motion.img 
                         src={product.image_url || 'https://via.placeholder.com/300'} 
                         alt={product.name}
-                        className="max-h-full max-w-full object-contain drop-shadow-md group-hover:scale-110 transition-transform duration-500"
+                        className="max-h-full max-w-full object-contain drop-shadow-md z-10"
+                        whileHover={{ scale: 1.15, rotate: -2, y: -5 }}
+                        transition={{ type: "spring", stiffness: 300 }}
                       />
                     </Link>
                     
-                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-slate-900 shadow-sm border border-slate-100">
+                    {/* Floating Category Badge */}
+                    <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold text-slate-900 shadow-sm border border-slate-100 z-20">
                       {product.category}
                     </div>
 
-                    {/* Hover Actions Overlay */}
+                    {/* Hover Actions Overlay (Slide Up) */}
                     <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-3 translate-y-10 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-30">
                       <Link href={`/product-details/${product.id}`} className="p-3 bg-white text-slate-700 rounded-full shadow-lg hover:bg-slate-50 hover:text-violet-600 transition-colors" title="Voir détails">
                         <Eye size={20} />
@@ -181,9 +191,9 @@ const ProductShowcase = ({ currentLanguage }: ProductShowcaseProps) => {
                   </div>
 
                   {/* Content Area */}
-                  <div className="p-5">
+                  <div className="p-6">
                     <div className="flex items-center gap-1 mb-2">
-                      <Star size={14} className="text-yellow-400 fill-yellow-400" />
+                      <Star size={14} className="text-amber-400 fill-amber-400" />
                       <span className="text-xs font-bold text-slate-400">4.8</span>
                     </div>
 
@@ -209,7 +219,7 @@ const ProductShowcase = ({ currentLanguage }: ProductShowcaseProps) => {
         )}
 
         {/* View All Link */}
-        <div className="text-center mt-8">
+        <div className="text-center mt-12">
           <Link href="/product-catalog" className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-violet-600 transition-colors uppercase tracking-widest border-b-2 border-transparent hover:border-violet-600 pb-1">
             {currentLanguage === 'fr' ? 'Explorer le catalogue' : 'تصفح الكتالوج'}
             <ChevronRight size={16} />
