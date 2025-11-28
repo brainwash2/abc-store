@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, Truck, CheckCircle, Clock, AlertCircle, Mail } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -24,7 +24,7 @@ export default function AdminOrders() {
     setLoading(false);
   };
 
-  const handleStatusChange = async (orderId: string, newStatus: string, customerEmail: string, customerName: string) => {
+  const handleStatusChange = async (orderId: string, newStatus: string, customerName: string) => {
     if (!confirm(`Changer le statut en "${newStatus}" ?`)) return;
     
     setUpdating(orderId);
@@ -39,22 +39,26 @@ export default function AdminOrders() {
       alert("Erreur: " + error.message);
     } else {
       // 2. If Shipped, Send Email
-      if (newStatus === 'expediee' && customerEmail) {
+      // We check for 'shipped' because that is what the DB expects now
+      if (newStatus === 'shipped') {
         try {
           await fetch('/api/emails/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              type: 'shipped', // <--- Tells API to send shipping email
-              email: customerEmail,
+              type: 'shipped',
+              email: 'sirmohamed66@gmail.com', // ⚠️ Using your email for testing as requested
               name: customerName,
               orderId: orderId
             })
           });
-          alert("Email d'expédition envoyé ! 📧");
+          alert("Statut mis à jour & Email envoyé ! 📧");
         } catch (e) {
           console.error("Email failed", e);
+          alert("Statut mis à jour, mais échec de l'envoi de l'email.");
         }
+      } else {
+        alert("Statut mis à jour !");
       }
       
       // Refresh UI
@@ -64,11 +68,12 @@ export default function AdminOrders() {
   };
 
   const getStatusColor = (status: string) => {
+    // Matches the English status codes from the Database
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'expediee': return 'bg-blue-100 text-blue-800';
-      case 'livree': return 'bg-green-100 text-green-800';
-      case 'annulee': return 'bg-red-100 text-red-800';
+      case 'shipped': return 'bg-blue-100 text-blue-800';
+      case 'delivered': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -111,40 +116,42 @@ export default function AdminOrders() {
           <tbody>
             {loading ? (
               <tr><td colSpan={6} className="p-8 text-center">Chargement...</td></tr>
-            ) : filteredOrders.map((order) => (
-              <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50">
-                <td className="p-4 font-mono text-xs text-slate-500">#{order.id.slice(0, 8)}</td>
-                <td className="p-4 font-medium text-slate-900">
-                  {order.customer_name}
-                  {/* We need to fetch email from auth users in a real app, but for now we assume we might have it or skip */}
-                </td>
-                <td className="p-4 font-bold text-primary">{order.total_amount.toLocaleString()} DA</td>
-                <td className="p-4 text-sm text-slate-500">
-                  {new Date(order.created_at).toLocaleDateString()}
-                </td>
-                <td className="p-4">
-                  <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase ${getStatusColor(order.status)}`}>
-                    {order.status}
-                  </span>
-                </td>
-                <td className="p-4">
-                  <select 
-                    disabled={updating === order.id}
-                    value={order.status}
-                    onChange={(e) => handleStatusChange(order.id, e.target.value, 'sirmohamed7@gmail.com', order.customer_name)} 
-                    // ⚠️ NOTE: In a real app, we need to join the 'users' table to get the real email. 
-                    // For this demo, I hardcoded YOUR email so you can test the notification.
-                    className="p-2 border rounded-lg text-sm bg-white cursor-pointer hover:border-primary focus:ring-2 focus:ring-primary outline-none"
-                  >
-                    <option value="pending">En attente</option>
-                    <option value="expediee">Expédiée 🚚</option>
-                    <option value="livree">Livrée ✅</option>
-                    <option value="annulee">Annulée ❌</option>
-                  </select>
-                  {updating === order.id && <span className="ml-2 text-xs text-slate-400">...</span>}
-                </td>
-              </tr>
-            ))}
+            ) : filteredOrders.length === 0 ? (
+              <tr><td colSpan={6} className="p-8 text-center text-slate-500">Aucune commande trouvée.</td></tr>
+            ) : (
+              filteredOrders.map((order) => (
+                <tr key={order.id} className="border-b border-slate-100 hover:bg-slate-50">
+                  <td className="p-4 font-mono text-xs text-slate-500">#{order.id.slice(0, 8)}</td>
+                  <td className="p-4 font-medium text-slate-900">
+                    {order.customer_name}
+                  </td>
+                  <td className="p-4 font-bold text-primary">{order.total_amount.toLocaleString()} DA</td>
+                  <td className="p-4 text-sm text-slate-500">
+                    {new Date(order.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="p-4">
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold uppercase ${getStatusColor(order.status)}`}>
+                      {order.status}
+                    </span>
+                  </td>
+                  <td className="p-4">
+                    <select 
+                      disabled={updating === order.id}
+                      value={order.status}
+                      onChange={(e) => handleStatusChange(order.id, e.target.value, order.customer_name)} 
+                      className="p-2 border rounded-lg text-sm bg-white cursor-pointer hover:border-primary focus:ring-2 focus:ring-primary outline-none"
+                    >
+                      {/* 👇 VALUES MUST MATCH DATABASE CONSTRAINTS (English) */}
+                      <option value="pending">En attente</option>
+                      <option value="shipped">Expédiée 🚚</option>
+                      <option value="delivered">Livrée ✅</option>
+                      <option value="cancelled">Annulée ❌</option>
+                    </select>
+                    {updating === order.id && <span className="ml-2 text-xs text-slate-400">...</span>}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
