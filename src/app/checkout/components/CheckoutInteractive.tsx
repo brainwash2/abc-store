@@ -80,11 +80,13 @@ const CheckoutInteractive = () => {
             customer_name: user?.user_metadata?.full_name || "Client Web",
             customer_phone: "0550 12 34 56", // Ideally get this from address form
             wilaya: "Alger",
+            email: user?.email,
             address: "15 Rue Didouche Mourad",
             total_amount: total,
             payment_method: selectedPaymentMethod,
             status: 'pending',
             items: items // Store the cart items JSON
+            
           }
         ])
         .select()
