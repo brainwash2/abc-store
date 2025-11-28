@@ -13,7 +13,7 @@ export default function UserDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (user) {
         setProfile(user);
 
@@ -59,7 +59,7 @@ export default function UserDashboard() {
             <p className="text-slate-500">{profile?.email}</p>
           </div>
         </div>
-        <button 
+        <button
           onClick={handleLogout}
           className="px-4 py-2 border border-red-100 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
         >
@@ -127,8 +127,8 @@ export default function UserDashboard() {
           </div>
         </div>
 
-         {/* Address Book (Future Feature) */}
-         <div className="group bg-white p-6 rounded-xl border border-slate-200 shadow-sm opacity-60 cursor-not-allowed">
+        {/* Address Book (Future Feature) */}
+        <div className="group bg-white p-6 rounded-xl border border-slate-200 shadow-sm opacity-60 cursor-not-allowed">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
               <div className="p-3 bg-slate-50 text-slate-400 rounded-xl">
