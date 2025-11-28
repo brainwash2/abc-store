@@ -1,7 +1,10 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import AppImage from '@/components/ui/AppImage';
 import Icon from '@/components/ui/AppIcon';
+import { FadeIn, SlideIn } from '@/components/ui/MotionDiv';
 
 interface HeroBannerProps {
   currentLanguage: 'fr' | 'ar';
@@ -30,68 +33,75 @@ const HeroBanner = ({ currentLanguage }: HeroBannerProps) => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           {/* Content */}
           <div className="space-y-6">
-            <div className="inline-flex items-center px-3 py-1 bg-accent text-accent-foreground rounded-full text-sm font-medium">
-              <Icon name="SparklesIcon" size={16} className="mr-2 rtl:mr-0 rtl:ml-2" />
-              {content[currentLanguage].badge}
-            </div>
+            <SlideIn>
+              <div className="inline-flex items-center px-3 py-1 bg-accent text-accent-foreground rounded-full text-sm font-medium">
+                <Icon name="SparklesIcon" size={16} className="mr-2 rtl:mr-0 rtl:ml-2" />
+                {content[currentLanguage].badge}
+              </div>
+            </SlideIn>
             
-            <h1 className="text-4xl lg:text-5xl font-bold leading-tight">
-              {content[currentLanguage].title}
-            </h1>
+            <FadeIn delay={0.2}>
+              <h1 className="text-4xl lg:text-5xl font-bold leading-tight">
+                {content[currentLanguage].title}
+              </h1>
+            </FadeIn>
             
-            <p className="text-xl text-blue-100 leading-relaxed">
-              {content[currentLanguage].subtitle}
-            </p>
+            <FadeIn delay={0.4}>
+              <p className="text-xl text-blue-100 leading-relaxed">
+                {content[currentLanguage].subtitle}
+              </p>
+            </FadeIn>
             
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                href="/product-catalog"
-                className="inline-flex items-center justify-center px-8 py-3 bg-accent text-accent-foreground font-semibold rounded-lg hover:bg-amber-400 transition-smooth">
-
-                {content[currentLanguage].cta}
-                <Icon name="ArrowRightIcon" size={20} className="ml-2 rtl:ml-0 rtl:mr-2" />
-              </Link>
-              
-              <Link
-                href="/product-catalog"
-                className="inline-flex items-center justify-center px-8 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-primary transition-smooth">
-
-                <Icon name="PlayIcon" size={20} className="mr-2 rtl:mr-0 rtl:ml-2" />
-                {currentLanguage === 'fr' ? 'Voir Démo' : 'مشاهدة العرض'}
-              </Link>
-            </div>
+            <FadeIn delay={0.6}>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Link
+                  href="/product-catalog"
+                  className="inline-flex items-center justify-center px-8 py-3 bg-accent text-accent-foreground font-semibold rounded-lg hover:bg-amber-400 transition-smooth">
+                  {content[currentLanguage].cta}
+                  <Icon name="ArrowRightIcon" size={20} className="ml-2 rtl:ml-0 rtl:mr-2" />
+                </Link>
+                
+                <Link
+                  href="/product-catalog"
+                  className="inline-flex items-center justify-center px-8 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-primary transition-smooth">
+                  <Icon name="PlayIcon" size={20} className="mr-2 rtl:mr-0 rtl:ml-2" />
+                  {currentLanguage === 'fr' ? 'Voir Démo' : 'مشاهدة العرض'}
+                </Link>
+              </div>
+            </FadeIn>
           </div>
           
           {/* Hero Image */}
-          <div className="relative">
-            <div className="relative z-10 bg-white rounded-2xl shadow-elevation-3 p-8">
-              <AppImage
-                src="https://images.unsplash.com/photo-1713470812508-c276021f1b93"
-                alt="Modern laptop computer with colorful screen display showing technology interface"
-                className="w-full h-64 object-cover rounded-lg" />
+          <FadeIn delay={0.8}>
+            <div className="relative">
+              <div className="relative z-10 bg-white rounded-2xl shadow-elevation-3 p-8">
+                <AppImage
+                  src="https://images.unsplash.com/photo-1713470812508-c276021f1b93?auto=format&fit=crop&w=800&q=80"
+                  alt="Modern laptop computer with colorful screen display showing technology interface"
+                  className="w-full h-64 object-cover rounded-lg" />
 
-              
-              {/* Floating Cards */}
-              <div className="absolute -top-4 -right-4 bg-success text-success-foreground px-4 py-2 rounded-lg shadow-elevation-2">
-                <div className="text-sm font-medium">
-                  {currentLanguage === 'fr' ? 'Livraison Gratuite' : 'توصيل مجاني'}
+                {/* Floating Cards */}
+                <div className="absolute -top-4 -right-4 bg-success text-success-foreground px-4 py-2 rounded-lg shadow-elevation-2 animate-bounce duration-[2000ms]">
+                  <div className="text-sm font-medium">
+                    {currentLanguage === 'fr' ? 'Livraison Gratuite' : 'توصيل مجاني'}
+                  </div>
+                </div>
+                
+                <div className="absolute -bottom-4 -left-4 bg-card text-card-foreground px-4 py-2 rounded-lg shadow-elevation-2">
+                  <div className="text-sm font-medium text-primary">
+                    {currentLanguage === 'fr' ? 'Garantie 2 ans' : 'ضمان سنتين'}
+                  </div>
                 </div>
               </div>
               
-              <div className="absolute -bottom-4 -left-4 bg-card text-card-foreground px-4 py-2 rounded-lg shadow-elevation-2">
-                <div className="text-sm font-medium text-primary">
-                  {currentLanguage === 'fr' ? 'Garantie 2 ans' : 'ضمان سنتين'}
-                </div>
-              </div>
+              {/* Background Decoration */}
+              <div className="absolute inset-0 bg-gradient-to-br from-accent to-amber-400 rounded-2xl transform rotate-6 scale-105 opacity-20"></div>
             </div>
-            
-            {/* Background Decoration */}
-            <div className="absolute inset-0 bg-gradient-to-br from-accent to-amber-400 rounded-2xl transform rotate-6 scale-105 opacity-20"></div>
-          </div>
+          </FadeIn>
         </div>
       </div>
-    </section>);
-
+    </section>
+  );
 };
 
 export default HeroBanner;
