@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { ShoppingBag, CreditCard, User, Settings, LogOut, ChevronRight, MapPin } from 'lucide-react';
+import { ShoppingBag, CreditCard, User, Settings, ChevronRight, MapPin } from 'lucide-react';
 
 export default function UserDashboard() {
   const [profile, setProfile] = useState<any>(null);
@@ -37,11 +37,6 @@ export default function UserDashboard() {
     fetchData();
   }, []);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = '/login';
-  };
-
   if (loading) return <div className="p-10 text-center">Chargement...</div>;
 
   return (
@@ -50,21 +45,20 @@ export default function UserDashboard() {
       <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 bg-violet-100 text-violet-600 rounded-full flex items-center justify-center text-2xl font-bold">
-            {profile?.user_metadata?.full_name?.[0] || <User />}
+            {profile?.user_metadata?.full_name?.[0]?.toUpperCase() || <User />}
           </div>
           <div>
             <h1 className="text-2xl font-bold text-slate-900">
               Bonjour, {profile?.user_metadata?.full_name || 'Client'} !
             </h1>
             <p className="text-slate-500">{profile?.email}</p>
+            <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              Compte Actif
+            </div>
           </div>
         </div>
-        <button
-          onClick={handleLogout}
-          className="px-4 py-2 border border-red-100 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-        >
-          <LogOut size={16} /> Déconnexion
-        </button>
+        {/* Logout removed here because it is in the sidebar */}
       </div>
 
       {/* 2. Stats Grid */}
@@ -112,7 +106,7 @@ export default function UserDashboard() {
           </div>
         </Link>
 
-        {/* Profile Settings Link (Future Feature) */}
+        {/* Profile Settings Link (Future) */}
         <div className="group bg-white p-6 rounded-xl border border-slate-200 shadow-sm opacity-60 cursor-not-allowed">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
@@ -127,7 +121,7 @@ export default function UserDashboard() {
           </div>
         </div>
 
-        {/* Address Book (Future Feature) */}
+        {/* Address Book (Future) */}
         <div className="group bg-white p-6 rounded-xl border border-slate-200 shadow-sm opacity-60 cursor-not-allowed">
           <div className="flex justify-between items-center">
             <div className="flex items-center gap-4">
