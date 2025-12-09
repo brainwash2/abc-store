@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Search, Mail, Truck, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Search, Mail, Truck, CheckCircle, XCircle, Clock, Bell } from 'lucide-react';
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -12,6 +12,21 @@ export default function AdminOrders() {
 
   useEffect(() => {
     fetchOrders();
+
+    // ⚡ REAL-TIME LISTENER: This makes orders POP in instantly
+    const channel = supabase
+      .channel('realtime orders')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, (payload) => {
+        console.log('New order received!', payload);
+        setOrders((currentOrders) => [payload.new, ...currentOrders]);
+        // Optional: You could add a browser notification here
+        alert("🔔 Nouvelle commande reçue !");
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchOrders = async () => {
@@ -25,12 +40,10 @@ export default function AdminOrders() {
   };
 
   const handleStatusChange = async (orderId: string, newStatus: string, customerEmail: string, customerName: string) => {
-    // 1. Confirmation
     if (!confirm(`Changer le statut en "${newStatus}" ?`)) return;
     
     setUpdating(orderId);
 
-    // 2. Update Database
     const { error } = await supabase
       .from('orders')
       .update({ status: newStatus })
@@ -39,33 +52,24 @@ export default function AdminOrders() {
     if (error) {
       alert("Erreur: " + error.message);
     } else {
-      // 3. Send Email (Only if status is 'shipped' and we have an email)
-      if (newStatus === 'shipped') {
-        if (customerEmail) {
-          try {
-            await fetch('/api/emails/send', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                type: 'shipped',
-                email: customerEmail, // Uses the real customer email from the order row
-                name: customerName,
-                orderId: orderId
-              })
-            });
-            alert("Statut mis à jour & Email envoyé au client ! 📧");
-          } catch (e) {
-            console.error("Email failed", e);
-            alert("Statut mis à jour, mais erreur d'envoi email.");
-          }
-        } else {
-          alert("Statut mis à jour (Pas d'email client trouvé).");
+      if (newStatus === 'shipped' && customerEmail) {
+        try {
+          await fetch('/api/emails/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              type: 'shipped',
+              email: customerEmail,
+              name: customerName,
+              orderId: orderId
+            })
+          });
+          alert("Statut mis à jour & Email envoyé ! 📧");
+        } catch (e) {
+          console.error("Email failed", e);
         }
-      } else {
-        alert("Statut mis à jour !");
       }
-      
-      fetchOrders(); // Refresh list
+      fetchOrders();
     }
     setUpdating(null);
   };
@@ -89,8 +93,10 @@ export default function AdminOrders() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Commandes</h1>
-          <p className="text-slate-500">Gestion des expéditions</p>
+          <h1 className="text-3xl font-bold text-slate-800 flex items-center gap-2">
+            Commandes <span className="text-sm bg-violet-100 text-violet-600 px-2 py-1 rounded-full">{orders.length}</span>
+          </h1>
+          <p className="text-slate-500">Gestion des expéditions en temps réel</p>
         </div>
         <div className="relative w-64">
           <Search className="absolute left-3 top-3 text-slate-400" size={20} />
@@ -123,7 +129,6 @@ export default function AdminOrders() {
                 <td className="p-4 font-mono text-xs text-slate-500">#{order.id.slice(0, 8)}</td>
                 <td className="p-4">
                   <div className="font-medium text-slate-900">{order.customer_name}</div>
-                  {/* Display email if available, mainly for Admin verification */}
                   {order.email && <div className="text-xs text-slate-400">{order.email}</div>}
                 </td>
                 <td className="p-4 font-bold text-primary">{order.total_amount.toLocaleString()} DA</td>
@@ -139,7 +144,6 @@ export default function AdminOrders() {
                   <select 
                     disabled={updating === order.id}
                     value={order.status}
-                    // 👇 HERE IS THE MAGIC: We pass order.email (which we will add to DB next)
                     onChange={(e) => handleStatusChange(order.id, e.target.value, order.email, order.customer_name)} 
                     className="p-2 border rounded-lg text-sm bg-white cursor-pointer hover:border-primary focus:ring-2 focus:ring-primary outline-none"
                   >
