@@ -7,7 +7,7 @@ import CartSheet from '@/components/layout/CartSheet';
 import { useCartStore } from '@/store/useCart';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { Menu, X } from 'lucide-react'; // Import Menu icons
+import { Menu, X } from 'lucide-react';
 
 interface HeaderProps {
   cartItemCount?: number;
@@ -18,26 +18,37 @@ interface HeaderProps {
   onAccountClick?: () => void;
 }
 
-const ADMIN_EMAILS = ['test@abc.com', 'contact@abc-informatique.dz', 'admin@abc.com'];
-
-const Header = ({ 
+const Header = ({
   currentLanguage = 'fr',
   onLanguageChange
 }: HeaderProps) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // Mobile State
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
-  
+
   const cartItems = useCartStore((state) => state.items);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 0);
     window.addEventListener('scroll', handleScroll);
-    
+
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUserEmail(user?.email || null);
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', user.id)
+          .single();
+
+        setIsAdmin(profile?.role === 'admin');
+      } else {
+        setIsAdmin(false);
+      }
     };
     checkUser();
 
@@ -47,6 +58,7 @@ const Header = ({
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUserEmail(null);
+    setIsAdmin(false);
     router.push('/login');
     setIsMobileMenuOpen(false);
   };
@@ -66,9 +78,9 @@ const Header = ({
       { label: { fr: 'Se connecter', ar: 'تسجيل الدخول' }, href: '/login', icon: 'UserIcon' },
       { label: { fr: 'Créer un compte', ar: 'إنشاء حساب' }, href: '/register', icon: 'UserPlusIcon' }
     ]),
-    ...(userEmail && ADMIN_EMAILS.includes(userEmail) ? [{ 
-      label: { fr: 'Admin', ar: 'الإدارة' }, href: '/admin', icon: 'CogIcon' 
-    }] : []), 
+    ...(userEmail && isAdmin ? [{
+      label: { fr: 'Admin', ar: 'الإدارة' }, href: '/admin', icon: 'CogIcon'
+    }] : []),
   ];
 
   return (
@@ -77,8 +89,6 @@ const Header = ({
     }`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
-          
-          {/* 1. Logo */}
           <Link href="/homepage" className="flex items-center gap-2 z-50">
             <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center shadow-lg shadow-violet-200">
               <Icon name="ComputerDesktopIcon" size={24} className="text-white" />
@@ -86,7 +96,6 @@ const Header = ({
             <span className="text-xl font-bold text-slate-900 tracking-tight">ABC<span className="text-violet-600">.store</span></span>
           </Link>
 
-          {/* 2. Desktop Navigation (Hidden on Mobile) */}
           <nav className="hidden md:flex items-center gap-8">
             <Link href="/homepage" className="text-sm font-medium text-slate-600 hover:text-violet-600 transition-colors">
               {currentLanguage === 'fr' ? 'Accueil' : 'الرئيسية'}
@@ -99,18 +108,13 @@ const Header = ({
             </Link>
           </nav>
 
-          {/* 3. Icons & Actions */}
           <div className="flex items-center gap-2">
-            
-            {/* Language Toggle */}
             <button onClick={handleLanguageToggle} className="p-2 hover:bg-slate-100 rounded-full transition-colors font-bold text-xs text-slate-600">
               {currentLanguage}
             </button>
 
-            {/* Cart */}
             <CartSheet />
 
-            {/* Desktop Profile Dropdown (Hidden on Mobile) */}
             <div className="hidden md:block relative group h-full">
               <button className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-700">
                 <Icon name="UserIcon" size={22} />
@@ -139,8 +143,7 @@ const Header = ({
               </div>
             </div>
 
-            {/* 4. Mobile Menu Button (Visible ONLY on Mobile) */}
-            <button 
+            <button
               className="md:hidden p-2 text-slate-700 hover:bg-slate-100 rounded-full transition-colors z-50"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             >
@@ -150,7 +153,6 @@ const Header = ({
         </div>
       </div>
 
-      {/* 5. Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-40 bg-white pt-24 px-6 md:hidden animate-in slide-in-from-top-10 fade-in duration-200">
           <nav className="flex flex-col gap-6 text-lg font-medium text-slate-800">
@@ -163,7 +165,7 @@ const Header = ({
             <Link href="/blog" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center justify-between border-b border-slate-100 pb-4">
               {currentLanguage === 'fr' ? 'Actualités' : 'أخبار'} <Icon name="ChevronRightIcon" size={20} className="text-slate-400" />
             </Link>
-            
+
             <div className="pt-4 space-y-3">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Compte</p>
               {accountMenuItems.map((item) => (

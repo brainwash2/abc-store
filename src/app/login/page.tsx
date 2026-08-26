@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
@@ -12,22 +12,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Auto-redirect if already logged in
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        // If admin, go to admin. If user, go to user dashboard.
-        if (session.user.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL) {
-           router.push('/admin');
-        } else {
-           router.push('/user/dashboard'); // <--- FIXED REDIRECT
-        }
-      }
-    };
-    checkSession();
-  }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,18 +26,21 @@ export default function LoginPage() {
 
       if (error) throw error;
 
-      // Check if Admin
-      const isAdmin = email === process.env.NEXT_PUBLIC_ADMIN_EMAIL;
-      
-      if (isAdmin) {
+      // Query profiles to determine role
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', data.user.id)
+        .single();
+
+      if (!profileError && profile?.role === 'admin') {
         router.push('/admin');
       } else {
-        router.push('/user/dashboard'); // <--- FIXED REDIRECT
+        router.push('/user/dashboard');
       }
-
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(err.message || "Une erreur est survenue.");
+      setError(err.message || 'Une erreur est survenue.');
       setLoading(false);
     }
   };

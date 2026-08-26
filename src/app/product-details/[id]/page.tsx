@@ -1,54 +1,130 @@
-'use client';
-
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
 import Header from '@/components/common/Header';
-import ProductInfo from '../components/ProductInfo';
 import ProductImageGallery from '../components/ProductImageGallery';
+import ProductInfo from '../components/ProductInfo';
 import ProductDescription from '../components/ProductDescription';
-import { Loader2 } from 'lucide-react';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
-export default function ProductDetailsPage() {
-  const params = useParams();
-  const [product, setProduct] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+type Product = {
+  id: string | number;
+  name: string;
+  description: string;
+  price: number;
+  image_url: string;
+  stock: number;
+  brand?: string;
+  category?: string;
+  specifications?: Record<string, unknown>;
+};
 
-  useEffect(() => {
-    const fetchProduct = async () => {
-      if (!params.id) return;
-      
-      const { data } = await supabase
-        .from('products')
-        .select('*')
-        .eq('id', params.id)
-        .single();
+async function getProduct(id: string): Promise<Product | null> {
+  const supabase = await createServerSupabaseClient();
 
-      if (data) setProduct(data);
-      setLoading(false);
+  const { data, error } = await supabase
+    .from('products')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) return null;
+  return data as Product;
+}
+
+function buildJsonLd(product: Product) {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://abc-store.example.com';
+
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description ?? product.name,
+    image: product.image_url,
+    brand: {
+      '@type': 'Brand',
+      name: product.brand ?? 'ABC Informatique',
+    },
+    category: product.category ?? 'Electronics',
+    offers: {
+      '@type': 'Offer',
+      priceCurrency: 'DZD',
+      price: product.price,
+      availability:
+        product.stock > 0
+          ? 'https://schema.org/InStock'
+          : 'https://schema.org/OutOfStock',
+      url: `${siteUrl}/product-details/${product.id}`,
+    },
+  };
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const product = await getProduct(id);
+
+  if (!product) {
+    return {
+      title: 'Produit introuvable | ABC Informatique',
     };
+  }
 
-    fetchProduct();
-  }, [params.id]);
+  const description = product.description?.slice(0, 160) ?? product.name;
 
-  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
-  if (!product) return <div className="h-screen flex items-center justify-center">Produit introuvable</div>;
+  return {
+    title: `${product.name} | ABC Informatique`,
+    description,
+    openGraph: {
+      title: product.name,
+      description,
+      images: product.image_url ? [product.image_url] : [],
+      type: 'website',
+      locale: 'fr_DZ',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: product.name,
+      description,
+      images: product.image_url ? [product.image_url] : [],
+    },
+  };
+}
+
+export default async function ProductDetailsPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const product = await getProduct(id);
+
+  if (!product) {
+    notFound();
+  }
+
+  const jsonLd = buildJsonLd(product);
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
       <Header cartItemCount={0} isAuthenticated={true} />
-      
+
       <main className="pt-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Fixed: Passed productName */}
-          <ProductImageGallery 
-            images={[product.image_url]} 
-            productName={product.name} 
+          <ProductImageGallery
+            images={[product.image_url]}
+            productName={product.name}
           />
-          
-          {/* We will update ProductInfo to accept 'id' */}
-          <ProductInfo 
-            id={product.id} 
+
+          <ProductInfo
+            id={product.id}
             name={product.name}
             price={product.price}
             rating={4.5}
@@ -59,10 +135,9 @@ export default function ProductDetailsPage() {
         </div>
 
         <div className="mt-16">
-          {/* We will update ProductDescription to accept 'specifications' */}
-          <ProductDescription 
-            description={product.description} 
-            specifications={product.specifications || {}} 
+          <ProductDescription
+            description={product.description}
+            specifications={product.specifications || {}}
           />
         </div>
       </main>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import {
@@ -10,42 +10,25 @@ import {
   Settings,
   LogOut,
   Store,
-  FileText // <--- NEW IMPORT
+  FileText
 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [loading, setLoading] = useState(true);
-
-  // Security Check (Keep your existing security logic here)
-  useEffect(() => {
-    const checkAdmin = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      // Compare against the hidden variable instead of hardcoded text
-if (!user || user.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL) { // Replace with your admin email
-        router.push('/login');
-      } else {
-        setLoading(false);
-      }
-    };
-    checkAdmin();
-  }, [router]);
+  const [loading] = useState(false);
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
     { icon: Package, label: 'Produits', href: '/admin/products' },
     { icon: ShoppingCart, label: 'Commandes', href: '/admin/orders' },
-    { icon: FileText, label: 'Blog', href: '/admin/blog' }, // <--- NEW ITEM
+    { icon: FileText, label: 'Blog', href: '/admin/blog' },
     { icon: Settings, label: 'Paramètres', href: '/admin/settings' },
   ];
 
-  if (loading) return <div className="h-screen flex items-center justify-center">Chargement...</div>;
-
   return (
     <div className="min-h-screen bg-slate-50 flex">
-      {/* Sidebar */}
       <aside className="w-64 bg-slate-900 text-white fixed h-full">
         <div className="p-6 border-b border-slate-800">
           <div className="flex items-center gap-2 text-primary-400 font-bold text-xl">
@@ -59,8 +42,11 @@ if (!user || user.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL) { // Replace wi
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${isActive ? 'bg-primary text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-                  }`}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                  isActive
+                    ? 'bg-primary text-white'
+                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                }`}
               >
                 <item.icon size={20} />
                 {item.label}
@@ -78,10 +64,7 @@ if (!user || user.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL) { // Replace wi
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="ml-64 flex-1 p-8">
-        {children}
-      </main>
+      <main className="ml-64 flex-1 p-8">{children}</main>
     </div>
   );
 }

@@ -1,0 +1,10 @@
+ 
+2. **Day 1 SQL**: Paste the block above into Supabase SQL Editor and run it.  
+3. **Seed admin**: Run `select id, email from auth.users where email = 'your-admin@example.com';` then `update public.profiles set role = 'admin' where id = '<UUID>';`.  
+4. **Verify**: Run the `pg_policies` query and the `information_schema.columns` query for `order_items`. Confirm RLS is enabled on all five tables and no old policy names remain.  
+5. **Day 2**: Run the `cat > middleware.ts` command (uses `rpc('is_admin')`).  
+6. **Day 3**: Run the two `cat` commands for `login/page.tsx` and `Header.tsx`.  
+7. **Day 5**: Run the two `cat` commands for `product-details/[id]/page.tsx` and `DeliverySection.tsx`.  
+8. **Commit after each step**: Priority 0, Day 1, Day 2, Day 3, Day 5 as separate commits.
+
+Everything is now consistent. You are clear to start.
