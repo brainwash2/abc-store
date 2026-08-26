@@ -81,16 +81,34 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 - Updated `DeliverySection.tsx` to accept real addresses, controlled form, save new address to Supabase.
 - Verified: normal user can add address, persists after refresh, multiple addresses possible.
 
-### Step 3 (PENDING): Use selected address in order creation
-- Need to run provided `cat` command for `CheckoutInteractive.tsx` to use selected address fields.
-- Not yet executed.
+### Step 3: Use selected address in order creation
+- Updated `CheckoutInteractive.tsx` to use selected address fields (name, phone, wilaya, street/commune) when placing order.
+- Verified: order row contains real address data, not hardcoded values.
 
-### Next Steps in Week 2
-- Move order creation to server route `/api/orders` (replace direct client insert).
-- Start writing to `order_items` instead of `orders.items`.
-- Remove temporary public insert policy on `orders` and replace with authenticated insert.
-- Deprecate `orders.items` JSON column.
-- Update order details and user orders pages to read from `order_items`.
+### Step 4: Server-side order creation + order_items
+- Added `SUPABASE_SERVICE_ROLE_KEY` to `.env.local`.
+- Created `src/lib/supabase-admin.ts` using service role client.
+- Created `src/app/api/orders/route.ts` that:
+  - Authenticates user via `@supabase/ssr`.
+  - Validates address ownership using service role.
+  - Fetches real product prices and validates stock.
+  - Computes delivery/tax/total server-side.
+  - Inserts order into `orders` (without `items` JSON) using service role.
+  - Inserts normalized rows into `order_items`.
+- Updated checkout to call `/api/orders` instead of direct Supabase insert.
+- Verified:
+  - POST to `/api/orders` returns 200.
+  - No direct POST to Supabase `/rest/v1/orders`.
+  - `orders.items` is null for new order.
+  - `order_items` rows created with correct `product_id`, `quantity`, `price_at_purchase`.
+- **Next:** Drop temporary public insert policy on `orders` (done after verification).
+- **Pending:** Update `order-details/page.tsx` and `user/orders/page.tsx` to read from `order_items`.
+- **Pending:** Drop `orders.items` column entirely.
+
+### Current Database State (as of Week 2 Step 4)
+- `orders` columns: id, created_at, customer_name, customer_phone, wilaya, address, total_amount, status, payment_method, user_id, items (nullable jsonb), email (nullable text)
+- `order_items`: id, order_id (uuid, NOT NULL), product_id (bigint, NOT NULL), quantity (integer, NOT NULL), price_at_purchase (numeric, NOT NULL)
+- `orders` policies: Admin can update orders, Users can update own pending orders, Users can view own orders. Temporary public insert orders dropped after Step 4.
 
 ---
 
@@ -103,12 +121,13 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 - **Supabase signup rate limit**: resolved by waiting or using dashboard user creation.
 - **Google Fonts fetch error in build**: removed Google Fonts imports from layout/globals.
 - **Git push network failure**: resolved; remote configured, credentials stored.
+- **Order creation client-side**: fixed by moving to `/api/orders` server route.
 
 ## Environment
 - Local dev on Kali Linux.
-- Supabase project: ..........
+- Supabase project: modyvxdhongnkrwdnwhy
 - Admin user: admin@mail (role admin)
-- Normal users: USER1 , USER2 
+- Normal users: USER1 , USER2
 - Remote: https://github.com/brainwash2/abc-store.git
 
 ## Verification Habits

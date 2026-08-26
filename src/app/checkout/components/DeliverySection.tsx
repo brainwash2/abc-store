@@ -1,17 +1,18 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Icon from '@/components/ui/AppIcon';
+import { supabase } from '@/lib/supabase';
 
 interface Address {
-  id: number;
-  name: string;
-  street: string;
-  city: string;
-  wilaya: string;
-  postalCode: string;
+  id: string;
+  full_name: string;
   phone: string;
-  isDefault: boolean;
+  street: string;
+  wilaya: string;
+  commune: string;
+  postal_code?: string;
+  is_default: boolean;
 }
 
 interface DeliveryMethod {
@@ -25,12 +26,14 @@ interface DeliveryMethod {
 
 interface DeliverySectionProps {
   currentLanguage: 'fr' | 'ar';
-  selectedAddress: number | null;
+  addresses: Address[];
+  selectedAddressId: string | null;
   selectedDeliveryMethod: string | null;
   showNewAddressForm: boolean;
-  onAddressSelect: (id: number) => void;
+  onAddressSelect: (id: string) => void;
   onDeliveryMethodSelect: (id: string) => void;
   onToggleNewAddressForm: () => void;
+  onNewAddressSaved: () => void;
 }
 
 const WILAYAS = [
@@ -107,25 +110,24 @@ const WILAYAS = [
 
 const DeliverySection = ({
   currentLanguage,
-  selectedAddress,
+  addresses,
+  selectedAddressId,
   selectedDeliveryMethod,
   showNewAddressForm,
   onAddressSelect,
   onDeliveryMethodSelect,
-  onToggleNewAddressForm
+  onToggleNewAddressForm,
+  onNewAddressSaved
 }: DeliverySectionProps) => {
-  const savedAddresses: Address[] = [
-    {
-      id: 1,
-      name: "Adresse Domicile",
-      street: "15 Rue Didouche Mourad",
-      city: "Alger Centre",
-      wilaya: "Alger",
-      postalCode: "16000",
-      phone: "+213 555 123 456",
-      isDefault: true
-    }
-  ];
+  const [newAddress, setNewAddress] = useState({
+    full_name: '',
+    phone: '',
+    street: '',
+    wilaya: '',
+    commune: '',
+    postal_code: ''
+  });
+  const [saving, setSaving] = useState(false);
 
   const deliveryMethods: DeliveryMethod[] = [
     {
@@ -154,6 +156,53 @@ const DeliverySection = ({
     }
   ];
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setNewAddress(prev => ({ ...prev, [e.target.name]: e.target.value }));
+  };
+
+  const handleSaveAddress = async () => {
+    if (!newAddress.full_name || !newAddress.phone || !newAddress.street || !newAddress.wilaya || !newAddress.commune) {
+      alert(currentLanguage === 'fr' ? 'Veuillez remplir tous les champs obligatoires' : 'يرجى ملء جميع الحقول الإجبارية');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { error } = await supabase
+        .from('addresses')
+        .insert([{
+          user_id: user.id,
+          full_name: newAddress.full_name,
+          phone: newAddress.phone,
+          street: newAddress.street,
+          wilaya: newAddress.wilaya,
+          commune: newAddress.commune,
+          postal_code: newAddress.postal_code,
+          is_default: addresses.length === 0 // first address becomes default
+        }]);
+
+      if (error) throw error;
+
+      setNewAddress({
+        full_name: '',
+        phone: '',
+        street: '',
+        wilaya: '',
+        commune: '',
+        postal_code: ''
+      });
+      onNewAddressSaved();
+    } catch (error: any) {
+      console.error('Address save error:', error);
+      alert(error.message || 'Error saving address');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
       <h2 className="text-xl font-bold text-slate-900 mb-6">
@@ -164,40 +213,46 @@ const DeliverySection = ({
         <h3 className="text-lg font-medium text-slate-800 mb-4">
           {currentLanguage === 'fr' ? 'Adresses Sauvegardées' : 'العناوين المحفوظة'}
         </h3>
-        <div className="space-y-3">
-          {savedAddresses.map((address) => (
-            <div
-              key={address.id}
-              className={`border rounded-lg p-4 cursor-pointer transition-all ${
-                selectedAddress === address.id
-                  ? 'border-violet-600 bg-violet-50 ring-1 ring-violet-600'
-                  : 'border-slate-200 hover:border-violet-300'
-              }`}
-              onClick={() => onAddressSelect(address.id)}
-            >
-              <div className="flex items-start gap-3">
-                <div className={`w-5 h-5 rounded-full border flex items-center justify-center mt-1 ${
-                  selectedAddress === address.id ? 'border-violet-600' : 'border-slate-400'
-                }`}>
-                  {selectedAddress === address.id && <div className="w-3 h-3 bg-violet-600 rounded-full" />}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="font-bold text-slate-900">{address.name}</p>
-                    {address.isDefault && (
-                      <span className="bg-violet-100 text-violet-700 text-xs px-2 py-0.5 rounded-full font-medium">
-                        {currentLanguage === 'fr' ? 'Par défaut' : 'افتراضي'}
-                      </span>
-                    )}
+        {addresses.length === 0 ? (
+          <p className="text-slate-500 text-sm mb-2">
+            {currentLanguage === 'fr' ? 'Aucune adresse enregistrée. Ajoutez votre première adresse.' : 'لا توجد عناوين محفوظة. أضف عنوانك الأول.'}
+          </p>
+        ) : (
+          <div className="space-y-3">
+            {addresses.map((address) => (
+              <div
+                key={address.id}
+                className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                  selectedAddressId === address.id
+                    ? 'border-violet-600 bg-violet-50 ring-1 ring-violet-600'
+                    : 'border-slate-200 hover:border-violet-300'
+                }`}
+                onClick={() => onAddressSelect(address.id)}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center mt-1 ${
+                    selectedAddressId === address.id ? 'border-violet-600' : 'border-slate-400'
+                  }`}>
+                    {selectedAddressId === address.id && <div className="w-3 h-3 bg-violet-600 rounded-full" />}
                   </div>
-                  <p className="text-sm text-slate-600 mt-1">{address.street}, {address.city}</p>
-                  <p className="text-sm text-slate-600">{address.wilaya} {address.postalCode}</p>
-                  <p className="text-sm text-slate-600">{address.phone}</p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-bold text-slate-900">{address.full_name}</p>
+                      {address.is_default && (
+                        <span className="bg-violet-100 text-violet-700 text-xs px-2 py-0.5 rounded-full font-medium">
+                          {currentLanguage === 'fr' ? 'Par défaut' : 'افتراضي'}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-slate-600 mt-1">{address.street}</p>
+                    <p className="text-sm text-slate-600">{address.wilaya}, {address.commune}</p>
+                    <p className="text-sm text-slate-600">{address.phone}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         <button
           onClick={onToggleNewAddressForm}
@@ -220,23 +275,40 @@ const DeliverySection = ({
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 {currentLanguage === 'fr' ? 'Nom complet' : 'الاسم الكامل'}
               </label>
-              <input type="text" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none" />
+              <input
+                type="text"
+                name="full_name"
+                value={newAddress.full_name}
+                onChange={handleInputChange}
+                className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 {currentLanguage === 'fr' ? 'Téléphone' : 'رقم الهاتف'}
               </label>
-              <input type="tel" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none" />
+              <input
+                type="tel"
+                name="phone"
+                value={newAddress.phone}
+                onChange={handleInputChange}
+                className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
+              />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 {currentLanguage === 'fr' ? 'Wilaya' : 'الولاية'}
               </label>
-              <select className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none bg-white">
+              <select
+                name="wilaya"
+                value={newAddress.wilaya}
+                onChange={handleInputChange}
+                className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none bg-white"
+              >
                 <option value="">{currentLanguage === 'fr' ? 'Sélectionner' : 'اختر'}</option>
                 {WILAYAS.map((w) => (
-                  <option key={w.code} value={w.code}>{w.code} - {w.name}</option>
+                  <option key={w.code} value={w.code + ' - ' + w.name}>{w.code} - {w.name}</option>
                 ))}
               </select>
             </div>
@@ -245,20 +317,49 @@ const DeliverySection = ({
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 {currentLanguage === 'fr' ? 'Commune' : 'البلدية'}
               </label>
-              <input type="text" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none" />
+              <input
+                type="text"
+                name="commune"
+                value={newAddress.commune}
+                onChange={handleInputChange}
+                className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
+              />
             </div>
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-slate-700 mb-1">
                 {currentLanguage === 'fr' ? 'Adresse exacte' : 'العنوان الدقيق'}
               </label>
-              <input type="text" className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none" />
+              <input
+                type="text"
+                name="street"
+                value={newAddress.street}
+                onChange={handleInputChange}
+                className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                {currentLanguage === 'fr' ? 'Code postal' : 'الرمز البريدي'}
+              </label>
+              <input
+                type="text"
+                name="postal_code"
+                value={newAddress.postal_code}
+                onChange={handleInputChange}
+                className="w-full p-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-violet-500 outline-none"
+              />
             </div>
           </div>
 
           <div className="flex gap-3 mt-6">
-            <button className="bg-violet-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-violet-700 transition-colors">
-              {currentLanguage === 'fr' ? 'Sauvegarder' : 'حفظ'}
+            <button
+              onClick={handleSaveAddress}
+              disabled={saving}
+              className="bg-violet-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-violet-700 transition-colors disabled:opacity-50"
+            >
+              {saving ? '...' : currentLanguage === 'fr' ? 'Sauvegarder' : 'حفظ'}
             </button>
             <button onClick={onToggleNewAddressForm} className="text-slate-600 hover:text-slate-900 px-4 py-2 font-medium transition-colors">
               {currentLanguage === 'fr' ? 'Annuler' : 'إلغاء'}

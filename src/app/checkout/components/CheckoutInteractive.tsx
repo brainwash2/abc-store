@@ -9,21 +9,21 @@ import DeliverySection from './DeliverySection';
 import PaymentSection from './PaymentSection';
 import OrderSummary from './OrderSummary';
 import { supabase } from '@/lib/supabase';
-import { useCartStore } from '@/store/useCart'; // <--- REAL CART
+import { useCartStore } from '@/store/useCart';
 
-const CheckoutInteractive = () => {
+export default function CheckoutInteractive() {
   const router = useRouter();
-  const { items, clearCart } = useCartStore(); // <--- USE STORE
+  const { items, clearCart } = useCartStore();
   const [currentLanguage, setCurrentLanguage] = useState<'fr' | 'ar'>('fr');
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedAddress, setSelectedAddress] = useState<number | null>(1);
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [addresses, setAddresses] = useState<any[]>([]);
   const [selectedDeliveryMethod, setSelectedDeliveryMethod] = useState<string | null>('standard');
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [errors, setErrors] = useState<{[key: string]: string;}>({});
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  // Calculate totals dynamically from STORE items
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const deliveryPrice = selectedDeliveryMethod === 'standard' ? 500 : selectedDeliveryMethod === 'express' ? 1200 : 0;
   const tax = Math.round(subtotal * 0.19);
@@ -36,6 +36,29 @@ const CheckoutInteractive = () => {
     document.documentElement.lang = savedLanguage;
   }, []);
 
+  useEffect(() => {
+    fetchAddresses();
+  }, []);
+
+  const fetchAddresses = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data } = await supabase
+      .from('addresses')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (data) {
+      setAddresses(data);
+      if (data.length > 0 && !selectedAddressId) {
+        const defaultAddr = data.find(a => a.is_default) || data[0];
+        setSelectedAddressId(defaultAddr.id);
+      }
+    }
+  };
+
   const handleLanguageChange = (language: 'fr' | 'ar') => {
     setCurrentLanguage(language);
     localStorage.setItem('language', language);
@@ -43,15 +66,32 @@ const CheckoutInteractive = () => {
     document.documentElement.lang = language;
   };
 
-  const handleAddressSelect = (id: number) => { setSelectedAddress(id); setErrors({ ...errors, address: '' }); };
-  const handleDeliveryMethodSelect = (id: string) => { setSelectedDeliveryMethod(id); setErrors({ ...errors, delivery: '' }); };
-  const handlePaymentMethodSelect = (id: string) => { setSelectedPaymentMethod(id); setErrors({ ...errors, payment: '' }); };
-  const handleToggleNewAddressForm = () => setShowNewAddressForm(!showNewAddressForm);
+  const handleAddressSelect = (id: string) => {
+    setSelectedAddressId(id);
+    setErrors(prev => ({ ...prev, address: '' }));
+  };
+
+  const handleDeliveryMethodSelect = (id: string) => {
+    setSelectedDeliveryMethod(id);
+    setErrors(prev => ({ ...prev, delivery: '' }));
+  };
+
+  const handlePaymentMethodSelect = (id: string) => {
+    setSelectedPaymentMethod(id);
+    setErrors(prev => ({ ...prev, payment: '' }));
+  };
+
+  const handleToggleNewAddressForm = () => setShowNewAddressForm(prev => !prev);
+
+  const handleNewAddressSaved = async () => {
+    await fetchAddresses();
+    setShowNewAddressForm(false);
+  };
 
   const validateStep = (step: number): boolean => {
-    const newErrors: {[key: string]: string;} = {};
+    const newErrors: { [key: string]: string } = {};
     if (step === 1) {
-      if (!selectedAddress) newErrors.address = currentLanguage === 'fr' ? 'Veuillez sélectionner une adresse' : 'يرجى اختيار عنوان';
+      if (!selectedAddressId) newErrors.address = currentLanguage === 'fr' ? 'Veuillez sélectionner une adresse' : 'يرجى اختيار عنوان';
       if (!selectedDeliveryMethod) newErrors.delivery = currentLanguage === 'fr' ? 'Veuillez sélectionner un mode de livraison' : 'يرجى اختيار طريقة التوصيل';
     } else if (step === 2) {
       if (!selectedPaymentMethod) newErrors.payment = currentLanguage === 'fr' ? 'Veuillez sélectionner un mode de paiement' : 'يرجى اختيار طريقة الدفع';
@@ -60,68 +100,44 @@ const CheckoutInteractive = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNextStep = () => { if (validateStep(currentStep) && currentStep < 3) setCurrentStep(currentStep + 1); };
-  const handlePreviousStep = () => { if (currentStep > 1) setCurrentStep(currentStep - 1); };
+  const handleNextStep = () => {
+    if (validateStep(currentStep) && currentStep < 2) setCurrentStep(currentStep + 1);
+  };
 
-  // --- REAL ORDER LOGIC ---
+  const handlePreviousStep = () => {
+    if (currentStep > 1) setCurrentStep(currentStep - 1);
+  };
+
   const handlePlaceOrder = async () => {
     if (!validateStep(2)) return;
     setIsProcessing(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map((item) => ({
+            id: item.id,
+            title: item.title,
+            price: item.price,
+            image: item.image,
+            quantity: item.quantity,
+          })),
+          addressId: selectedAddressId,
+          deliveryMethod: selectedDeliveryMethod,
+          paymentMethod: selectedPaymentMethod,
+        }),
+      });
 
-      // 1. Insert Order into Supabase
-      const { data: order, error } = await supabase
-        .from('orders')
-        .insert([
-          {
-            user_id: user?.id || null,
-            customer_name: user?.user_metadata?.full_name || "Client Web",
-            customer_phone: "0550 12 34 56", // Ideally get this from address form
-            wilaya: "Alger",
-            email: user?.email,
-            address: "15 Rue Didouche Mourad",
-            total_amount: total,
-            payment_method: selectedPaymentMethod,
-            status: 'pending',
-            items: items // Store the cart items JSON
-            
-          }
-        ])
-        .select()
-        .single();
+      const data = await response.json();
 
-      if (error) throw error;
-
-      // 2. Send Email via Resend API
-      if (user?.email) {
-        try {
-          await fetch('/api/emails/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: user.email,
-              name: user.user_metadata?.full_name || "Client",
-              orderId: order.id,
-              total: total
-            }),
-          });
-        } catch (e) {
-          console.error("Email failed but order saved", e);
-        }
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create order');
       }
 
-      // 3. Clear Cart & Redirect
       clearCart();
-      
-      if (selectedPaymentMethod === 'whatsapp') {
-        const message = encodeURIComponent(`Bonjour ABC, Commande #${order.id.slice(0,8)} confirmée. Total: ${total} DA`);
-        window.open(`https://wa.me/213555123456?text=${message}`, '_blank');
-      }
-
-      router.push(`/order-details?order_id=${order.id}&status=success`);
-
+      router.push(`/order-details?order_id=${data.orderId}&status=success`);
     } catch (error: any) {
       console.error('Order Error:', error);
       alert(`Erreur: ${error.message || "Impossible de commander"}`);
@@ -136,12 +152,12 @@ const CheckoutInteractive = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header
-        cartItemCount={items.length} // Real count
+        cartItemCount={items.length}
         isAuthenticated={true}
         currentLanguage={currentLanguage}
         onLanguageChange={handleLanguageChange}
         onCartClick={handleCartClick}
-        onAccountClick={handleAccountClick} 
+        onAccountClick={handleAccountClick}
       />
 
       <main className="pt-20 pb-12">
@@ -165,12 +181,14 @@ const CheckoutInteractive = () => {
               {currentStep >= 1 && (
                 <DeliverySection
                   currentLanguage={currentLanguage}
-                  selectedAddress={selectedAddress}
+                  addresses={addresses}
+                  selectedAddressId={selectedAddressId}
                   selectedDeliveryMethod={selectedDeliveryMethod}
                   showNewAddressForm={showNewAddressForm}
                   onAddressSelect={handleAddressSelect}
                   onDeliveryMethodSelect={handleDeliveryMethodSelect}
-                  onToggleNewAddressForm={handleToggleNewAddressForm} 
+                  onToggleNewAddressForm={handleToggleNewAddressForm}
+                  onNewAddressSaved={handleNewAddressSaved}
                 />
               )}
 
@@ -178,7 +196,7 @@ const CheckoutInteractive = () => {
                 <PaymentSection
                   currentLanguage={currentLanguage}
                   selectedPaymentMethod={selectedPaymentMethod}
-                  onPaymentMethodSelect={handlePaymentMethodSelect} 
+                  onPaymentMethodSelect={handlePaymentMethodSelect}
                 />
               )}
 
@@ -219,13 +237,12 @@ const CheckoutInteractive = () => {
             </div>
 
             <div className="lg:col-span-1">
-              {/* Pass Real Items to Summary */}
               <OrderSummary
                 currentLanguage={currentLanguage}
-                cartItems={items as any} 
+                cartItems={items as any}
                 deliveryPrice={deliveryPrice}
                 subtotal={subtotal}
-                total={total} 
+                total={total}
               />
             </div>
           </div>
@@ -233,6 +250,4 @@ const CheckoutInteractive = () => {
       </main>
     </div>
   );
-};
-
-export default CheckoutInteractive;
+}
