@@ -4,26 +4,36 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
-import { CheckCircle, Clock, Package, Truck, Home, ArrowRight } from 'lucide-react';
+import { CheckCircle } from 'lucide-react';
 import Header from '@/components/common/Header';
 
-// Component to read URL params safely
 const OrderContent = () => {
   const searchParams = useSearchParams();
   const orderId = searchParams.get('order_id');
   const [order, setOrder] = useState<any>(null);
+  const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchOrder = async () => {
       if (!orderId) return;
-      const { data } = await supabase
+
+      const { data: orderData } = await supabase
         .from('orders')
         .select('*')
         .eq('id', orderId)
         .single();
-      
-      if (data) setOrder(data);
+
+      if (orderData) {
+        setOrder(orderData);
+
+        const { data: itemsData } = await supabase
+          .from('order_items')
+          .select('quantity, price_at_purchase, product_id, products(name, image_url)')
+          .eq('order_id', orderId);
+
+        setItems(itemsData || []);
+      }
       setLoading(false);
     };
     fetchOrder();
@@ -48,11 +58,10 @@ const OrderContent = () => {
   return (
     <div className="min-h-screen bg-slate-50 pb-12">
       <Header cartItemCount={0} isAuthenticated={true} />
-      
+
       <main className="pt-24 max-w-3xl mx-auto px-4">
-        {/* Success Banner */}
         <div className="bg-white rounded-2xl shadow-sm p-8 text-center mb-6 border border-green-100">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6 animate-in zoom-in duration-300">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
             <CheckCircle className="text-green-600" size={40} />
           </div>
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Merci pour votre commande !</h1>
@@ -61,7 +70,6 @@ const OrderContent = () => {
           </p>
         </div>
 
-        {/* Order Details Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
           <div className="p-6 border-b border-slate-100 bg-slate-50/50 flex justify-between items-center">
             <h2 className="font-bold text-slate-800">Détails de la commande</h2>
@@ -69,9 +77,8 @@ const OrderContent = () => {
               {order.status}
             </span>
           </div>
-          
+
           <div className="p-6 space-y-6">
-            {/* Customer Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <p className="text-sm text-slate-500 mb-1">Client</p>
@@ -89,36 +96,38 @@ const OrderContent = () => {
 
             <div className="border-t border-slate-100 my-4"></div>
 
-            {/* Items List */}
             <div>
               <p className="text-sm text-slate-500 mb-4">Articles</p>
-              <div className="space-y-4">
-                {order.items && Array.isArray(order.items) ? (
-                  order.items.map((item: any, index: number) => (
+              {items.length === 0 ? (
+                <p className="text-sm text-slate-400 italic">Détails des articles non disponibles.</p>
+              ) : (
+                <div className="space-y-4">
+                  {items.map((item: any, index: number) => (
                     <div key={index} className="flex justify-between items-center">
                       <div className="flex items-center gap-4">
                         <div className="w-12 h-12 bg-slate-100 rounded-lg overflow-hidden border border-slate-200">
-                          {item.image && <img src={item.image} className="w-full h-full object-cover" alt="" />}
+                          {item.products?.image_url && (
+                            <img src={item.products.image_url} className="w-full h-full object-cover" alt="" />
+                          )}
                         </div>
                         <div>
-                          <p className="font-medium text-slate-900 line-clamp-1">{item.name || item.title}</p>
+                          <p className="font-medium text-slate-900 line-clamp-1">
+                            {item.products?.name || `Produit #${item.product_id}`}
+                          </p>
                           <p className="text-xs text-slate-500">Qté: {item.quantity}</p>
                         </div>
                       </div>
                       <p className="font-bold text-slate-700">
-                        {(item.price * item.quantity).toLocaleString()} DA
+                        {(item.price_at_purchase * item.quantity).toLocaleString()} DA
                       </p>
                     </div>
-                  ))
-                ) : (
-                  <p className="text-sm text-slate-400 italic">Détails des articles non disponibles.</p>
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="border-t border-slate-100 my-4"></div>
 
-            {/* Total */}
             <div className="flex justify-between items-center">
               <span className="text-lg font-medium text-slate-600">Total Payé</span>
               <span className="text-2xl font-bold text-primary">
@@ -128,10 +137,9 @@ const OrderContent = () => {
           </div>
         </div>
 
-        {/* Actions */}
         <div className="mt-8 flex justify-center gap-4">
           <Link href="/product-catalog" className="flex items-center gap-2 text-slate-600 hover:text-primary transition-colors font-medium">
-            <ArrowRight size={20} className="rotate-180" /> Continuer vos achats
+            Continuer vos achats
           </Link>
         </div>
       </main>

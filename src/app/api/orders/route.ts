@@ -13,7 +13,6 @@ type CartItemInput = {
 export async function POST(request: Request) {
   const supabase = await createServerSupabaseClient();
 
-  // 1. Authenticate
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -22,7 +21,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // 2. Parse and validate body
   let body: any;
   try {
     body = await request.json();
@@ -40,99 +38,33 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
   }
 
-  // 3. Verify address belongs to user
-  const { data: address, error: addressError } = await supabaseAdmin
-    .from('addresses')
-    .select('*')
-    .eq('id', addressId)
-    .eq('user_id', user.id)
-    .single();
-
-  if (addressError || !address) {
-    return NextResponse.json({ error: 'Address not found' }, { status: 400 });
-  }
-
-  // 4. Fetch product prices and build order items
-  const orderItems = [];
-  let subtotal = 0;
-
-  for (const item of items as CartItemInput[]) {
-    const productId = parseInt(item.id, 10);
-    if (isNaN(productId)) {
-      return NextResponse.json({ error: 'Invalid product ID' }, { status: 400 });
-    }
-
-    const { data: product, error: productError } = await supabaseAdmin
-      .from('products')
-      .select('id, price, stock')
-      .eq('id', productId)
-      .single();
-
-    if (productError || !product) {
-      return NextResponse.json({ error: `Product ${item.id} not found` }, { status: 400 });
-    }
-
-    if (product.stock < item.quantity) {
-      return NextResponse.json({ error: `Insufficient stock for ${product.id}` }, { status: 400 });
-    }
-
-    const unitPrice = product.price;
-    subtotal += unitPrice * item.quantity;
-
-    orderItems.push({
-      product_id: product.id,
-      quantity: item.quantity,
-      price_at_purchase: unitPrice,
-    });
-  }
-
-  // 5. Delivery price
-  const deliveryPrice =
-    deliveryMethod === 'express' ? 1200 :
-    deliveryMethod === 'standard' ? 500 : 0;
-
-  const tax = Math.round(subtotal * 0.19);
-  const total = subtotal + deliveryPrice + tax;
-
-  // 6. Insert order
-  const { data: order, error: orderError } = await supabaseAdmin
-    .from('orders')
-    .insert([
-      {
-        user_id: user.id,
-        customer_name: address.full_name,
-        customer_phone: address.phone,
-        wilaya: address.wilaya,
-        address: `${address.street}, ${address.commune} ${address.postal_code || ''}`,
-        total_amount: total,
-        payment_method: paymentMethod,
-        status: 'pending',
-      },
-    ])
-    .select('id')
-    .single();
-
-  if (orderError) {
-    return NextResponse.json({ error: orderError.message }, { status: 500 });
-  }
-
-  // 7. Insert order items
-  const orderItemsToInsert = orderItems.map((item) => ({
-    order_id: order.id,
-    product_id: item.product_id,
+  const cartItems = items.map((item: CartItemInput) => ({
+    id: item.id,
     quantity: item.quantity,
-    price_at_purchase: item.price_at_purchase,
   }));
 
-  const { error: itemsError } = await supabaseAdmin
-    .from('order_items')
-    .insert(orderItemsToInsert);
+  try {
+    const { data: orderId, error } = await supabaseAdmin.rpc('create_order', {
+      p_user_id: user.id,
+      p_address_id: addressId,
+      p_delivery_method: deliveryMethod,
+      p_payment_method: paymentMethod,
+      p_items: cartItems,
+    });
 
-  if (itemsError) {
-    // If items insertion fails, delete the order to avoid partial state
-    await supabaseAdmin.from('orders').delete().eq('id', order.id);
-    return NextResponse.json({ error: itemsError.message }, { status: 500 });
+    if (error) throw error;
+
+    const { data: order, error: orderFetchError } = await supabaseAdmin
+      .from('orders')
+      .select('total_amount')
+      .eq('id', orderId)
+      .single();
+
+    if (orderFetchError) throw orderFetchError;
+
+    return NextResponse.json({ orderId, total: order.total_amount });
+  } catch (error: any) {
+    console.error('Order creation error:', error);
+    return NextResponse.json({ error: error.message || 'Failed to create order' }, { status: 500 });
   }
-
-  return NextResponse.json({ orderId: order.id, total });
 }

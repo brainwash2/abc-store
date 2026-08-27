@@ -12,22 +12,33 @@ export default function UserOrders() {
 
   useEffect(() => {
     const fetchOrders = async () => {
-      // 1. Get Current User
       const { data: { user } } = await supabase.auth.getUser();
-      
+
       if (!user) {
         setLoading(false);
         return;
       }
 
-      // 2. Fetch Orders for this User
       const { data } = await supabase
         .from('orders')
         .select('*')
-        .eq('user_id', user.id) // 🔒 Security: Only show my orders
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (data) setOrders(data);
+      if (data) {
+        const ordersWithItems = await Promise.all(
+          data.map(async (order) => {
+            const { data: items } = await supabase
+              .from('order_items')
+              .select('quantity, product_id, products(name, image_url)')
+              .eq('order_id', order.id);
+
+            return { ...order, items: items || [] };
+          })
+        );
+
+        setOrders(ordersWithItems);
+      }
       setLoading(false);
     };
 
@@ -80,7 +91,6 @@ export default function UserOrders() {
 
           return (
             <div key={order.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-md transition-shadow">
-              {/* Header */}
               <div className="p-4 border-b border-slate-100 bg-slate-50/50 flex flex-wrap gap-4 justify-between items-center">
                 <div className="flex gap-4 text-sm">
                   <div>
@@ -99,30 +109,31 @@ export default function UserOrders() {
                     <span className="font-bold text-primary">{order.total_amount.toLocaleString()} DA</span>
                   </div>
                 </div>
-                
+
                 <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase ${status.color}`}>
                   <StatusIcon size={14} />
                   {status.label}
                 </div>
               </div>
 
-              {/* Items Preview */}
               <div className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex -space-x-3 overflow-hidden py-2">
-                    {order.items && order.items.slice(0, 4).map((item: any, index: number) => (
+                    {order.items.slice(0, 4).map((item: any, index: number) => (
                       <div key={index} className="relative w-12 h-12 rounded-lg border-2 border-white bg-slate-100 overflow-hidden shadow-sm">
-                        <AppImage src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                        {item.products?.image_url ? (
+                          <AppImage src={item.products.image_url} alt={item.products.name || 'produit'} className="w-full h-full object-cover" />
+                        ) : null}
                       </div>
                     ))}
-                    {order.items && order.items.length > 4 && (
+                    {order.items.length > 4 && (
                       <div className="relative w-12 h-12 rounded-lg border-2 border-white bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500">
                         +{order.items.length - 4}
                       </div>
                     )}
                   </div>
 
-                  <Link 
+                  <Link
                     href={`/order-details?order_id=${order.id}`}
                     className="flex items-center gap-2 text-sm font-bold text-primary hover:text-violet-700 transition-colors"
                   >
