@@ -15,7 +15,7 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 ## Week 1 — Security & SEO (COMPLETE)
 
 ### Priority 0: Email relay security
-- **Fixed open email relay** in `/api/emails/send`.
+- Fixed open email relay in `/api/emails/send`.
 - Replaced direct `Resend` client instantiation with lazy init.
 - Added auth check via `@supabase/ssr` server client.
 - Verified: logged-out returns 401, logged-in with own order returns 200, other user's order returns 403.
@@ -27,107 +27,135 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 - Created `prevent_role_change` trigger to block role changes except service_role.
 - Created `is_admin()` Postgres function.
 - Enabled RLS on all public tables (products, orders, order_items, posts, subscribers).
-- Dropped duplicate/insecure policies (list of old policies recorded).
+- Dropped duplicate/insecure policies.
 - Fixed `order_items.product_id` type from uuid to bigint, set `order_id` and `product_id` NOT NULL.
 - Created new policies using `is_admin()` and `auth.uid()`.
-- Seeded admin role for admin user.
-- Verified: `pg_policies` shows only intended policies; `order_items` columns correct.
+- Seeded admin role.
+- Verified policies and column types.
 - Committed migration file `supabase/migrations/0001_week1_security_seo.sql`.
 
 ### Day 2: Middleware
 - Migrated to `@supabase/ssr` in `middleware.ts`.
 - Used `rpc('is_admin')` for admin check.
-- Removed client-side admin email check from `admin/layout.tsx`.
-- Verified: logged-out /admin redirects to /login, normal user redirected to /user/dashboard, admin can access.
-- Discovered and fixed Turbopack middleware not running in dev mode: use production mode for testing.
-- Applied cookie-transplant fix on redirects (from Claude's research).
+- Removed client-side admin email check.
+- Verified logged-out, normal user, admin redirects.
+- Fixed Turbopack middleware not running in dev by testing in production mode.
+- Applied cookie-transplant fix on redirects.
 - Committed.
 
 ### Day 3: Client Supabase migration & remaining admin checks
-- Replaced `src/lib/supabase.ts` with `createBrowserClient` from `@supabase/ssr` to store session in cookies.
-- This fixed login persistence and middleware seeing session.
-- Updated `login/page.tsx` and `Header.tsx` to query `profiles` role directly (client-side).
-- Verified: normal user no admin link, admin has admin link.
+- Replaced `src/lib/supabase.ts` with `createBrowserClient` from `@supabase/ssr`.
+- Fixed login persistence and middleware session visibility.
+- Updated `login/page.tsx` and `Header.tsx` to query `profiles` role.
+- Verified no admin link for normal user, admin link for admin.
 - Committed.
 
-### Day 4: RLS policies cleanup (part of Day 1 block)
+### Day 4: RLS policies cleanup
 - Verified no duplicate policies left.
-- `order_items` has zero policies (intentional locked-down until Week 2).
+- `order_items` initially had zero policies (locked down until Week 2).
 - All RLS enabled.
 
 ### Day 5: Product SEO & wilayas
 - Replaced `product-details/[id]/page.tsx` with server component.
 - Added `generateMetadata` and JSON-LD Product schema.
-- Updated `DeliverySection.tsx` wilaya list to 69 wilayas (including new Loi 26-06 additions).
-- Verified: product page source shows title/meta/JSON-LD; wilaya dropdown shows 69 options.
+- Updated `DeliverySection.tsx` wilaya list to 69 wilayas.
+- Verified SEO tags and 69 options.
 - Committed.
 
 ### Week 1 Final
-- All changes committed and pushed to GitHub (origin).
-- `Progress.MD` created (this file).
-- Migration file committed as history.
+- All changes committed and pushed to GitHub.
+- `Progress.MD` created.
+- Migration file committed.
 
 ---
 
-## Week 2 — Server-side Writes & Addresses (IN PROGRESS)
+## Week 2 — Server-side Writes & Addresses (COMPLETE)
 
 ### Step 1: Addresses table
-- Created `addresses` table with RLS, linked to `auth.users`.
+- Created `addresses` table with RLS.
 - Policy: "Users can manage own addresses".
-- Verified: table created, policy present.
+- Verified.
 
-### Step 2: Real address management in checkout
-- Replaced mock address list in `CheckoutInteractive.tsx` with real fetch from `addresses`.
-- Updated `DeliverySection.tsx` to accept real addresses, controlled form, save new address to Supabase.
-- Verified: normal user can add address, persists after refresh, multiple addresses possible.
+### Step 2: Real address management
+- Replaced mock addresses with real fetch and save to Supabase.
+- Verified multiple addresses persist.
 
 ### Step 3: Use selected address in order creation
-- Updated `CheckoutInteractive.tsx` to use selected address fields (name, phone, wilaya, street/commune) when placing order.
-- Verified: order row contains real address data, not hardcoded values.
+- Updated `CheckoutInteractive` to use selected address fields.
+- Verified order row contains real address data.
 
 ### Step 4: Server-side order creation + order_items
-- Added `SUPABASE_SERVICE_ROLE_KEY` to `.env.local`.
-- Created `src/lib/supabase-admin.ts` using service role client.
-- Created `src/app/api/orders/route.ts` that:
-  - Authenticates user via `@supabase/ssr`.
-  - Validates address ownership using service role.
-  - Fetches real product prices and validates stock.
+- Added `SUPABASE_SERVICE_ROLE_KEY`.
+- Created `src/lib/supabase-admin.ts`.
+- Created `src/app/api/orders/route.ts`:
+  - Authenticates via `@supabase/ssr`.
+  - Calls `create_order()` SQL function using service role.
+  - Strips client-sent price/title; only sends `id` and `quantity`.
+  - Returns `orderId` and `total`.
+- Created Postgres function `create_order()`:
+  - Atomic transaction with `FOR UPDATE` row locks.
+  - Aggregates duplicate product IDs in cart before stock check.
+  - Validates address ownership inside function.
+  - Fetches real product prices.
   - Computes delivery/tax/total server-side.
-  - Inserts order into `orders` (without `items` JSON) using service role.
-  - Inserts normalized rows into `order_items`.
-- Updated checkout to call `/api/orders` instead of direct Supabase insert.
+  - Inserts into `orders` and `order_items`.
+  - Decrements stock.
+  - Restricted execute to `service_role`.
 - Verified:
-  - POST to `/api/orders` returns 200.
+  - POST `/api/orders` returns 200 and real total.
   - No direct POST to Supabase `/rest/v1/orders`.
-  - `orders.items` is null for new order.
-  - `order_items` rows created with correct `product_id`, `quantity`, `price_at_purchase`.
-- **Next:** Drop temporary public insert policy on `orders` (done after verification).
-- **Pending:** Update `order-details/page.tsx` and `user/orders/page.tsx` to read from `order_items`.
-- **Pending:** Drop `orders.items` column entirely.
+  - Duplicate product IDs in a crafted request aggregated correctly.
+  - Stock decremented correctly.
+  - Normal UI order still works.
 
-### Current Database State (as of Week 2 Step 4)
-- `orders` columns: id, created_at, customer_name, customer_phone, wilaya, address, total_amount, status, payment_method, user_id, items (nullable jsonb), email (nullable text)
-- `order_items`: id, order_id (uuid, NOT NULL), product_id (bigint, NOT NULL), quantity (integer, NOT NULL), price_at_purchase (numeric, NOT NULL)
-- `orders` policies: Admin can update orders, Users can update own pending orders, Users can view own orders. Temporary public insert orders dropped after Step 4.
+### Step 5: Order details & user orders migration to order_items
+- Added foreign keys on `order_items` (order_id cascade, product_id restrict).
+- Added SELECT policy "Users can view own order items" scoped to order owner or admin.
+- Replaced `order-details/page.tsx` to read from `order_items` joined with `products`.
+- Replaced `user/page.tsx` and `user/orders/page.tsx` to fetch order items with product info.
+- Verified:
+  - Order details page shows product name, image, quantity, line total.
+  - `/user/orders` and `/user` show product thumbnails.
+  - No "Détails des articles non disponibles" when items exist.
+
+### Step 6: Drop legacy orders.items column
+- Dropped `orders.items` after pages migrated.
+- Verified column removed; orders table now has only normalized fields.
+- Placed a final test order successfully.
+
+### Current Database State
+- `orders`: id, created_at, customer_name, customer_phone, wilaya, address, total_amount, status, payment_method, user_id, email. No `items` column.
+- `order_items`: id, order_id (FK to orders), product_id (FK to products), quantity, price_at_purchase.
+- `addresses`: id, user_id, full_name, phone, street, wilaya, commune, postal_code, is_default, created_at.
+- `orders` policies: Admin can update orders, Users can update own pending orders, Users can view own orders. No public insert.
+- `order_items` policies: Users can view own order items.
+
+### Week 2 Final
+- All changes committed to git.
+- Pending push to remote? (confirm after commit)
+- Ready for Week 3.
 
 ---
 
 ## Known Issues / Resolved
-- **Middleware not running in dev mode**: solved by using production build (`npm run build && npm run start`) for testing.
-- **Session not persisting after login**: fixed by using `createBrowserClient` from `@supabase/ssr`.
-- **Email relay open**: fixed with auth + order ownership check.
-- **Duplicate policies**: all cleaned.
-- **Type mismatch (order_items.product_id)**: fixed to bigint.
-- **Supabase signup rate limit**: resolved by waiting or using dashboard user creation.
-- **Google Fonts fetch error in build**: removed Google Fonts imports from layout/globals.
-- **Git push network failure**: resolved; remote configured, credentials stored.
-- **Order creation client-side**: fixed by moving to `/api/orders` server route.
+- Middleware not running in dev: use production build.
+- Session not persisting: fixed with `createBrowserClient`.
+- Email relay open: fixed.
+- Duplicate policies: cleaned.
+- Type mismatch `order_items.product_id`: fixed.
+- Signup rate limit: resolved by waiting or dashboard user creation.
+- Google Fonts fetch error: removed imports.
+- Git push network failure: resolved.
+- Order creation client-side: moved to server route.
+- Stock overselling risk: fixed with atomic `FOR UPDATE` and aggregation.
+- Duplicate product ID in cart: fixed by aggregating before check.
+- order_items had no SELECT policy: added "Users can view own order items".
 
 ## Environment
 - Local dev on Kali Linux.
 - Supabase project: modyvxdhongnkrwdnwhy
 - Admin user: admin@mail (role admin)
-- Normal users: USER1 , USER2
+- Normal users: USER1, USER2
 - Remote: https://github.com/brainwash2/abc-store.git
 
 ## Verification Habits
