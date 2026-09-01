@@ -8,7 +8,7 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 - SEO: Product metadata and JSON-LD.
 - Regional: 69 wilayas, real address management.
 - Payments: COD + Chargily.
-- Marketplace: sellers, order_items, payouts (later).
+- Marketplace: sellers, order_items, payouts.
 
 ---
 
@@ -61,7 +61,7 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 ## Week 2 — Server-side Writes & Addresses (COMPLETE)
 
 ### Addresses & RLS
-- Created `addresses` table with `Users can manage own addresses` policy (ALL, auth.uid() = user_id).
+- Created `addresses` table with `Users can manage own addresses` policy.
 - Replaced mock addresses with real CRUD.
 
 ### Server-side order creation
@@ -87,52 +87,49 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 
 ---
 
-## Week 3 — Chargily Pay Integration (CORE COMPLETE, webhook pending local testing)
+## Week 3 — Chargily Pay Integration (COMPLETE)
 
 ### Chargily keys & env
-- Added `CHARGILY_SECRET_KEY` and `CHARGILY_WEBHOOK_SECRET` to `.env.local`.
+- Added `CHARGILY_SECRET_KEY` and `CHARGILY_WEBHOOK_SECRET`.
 
 ### Checkout creation
 - Created `/api/chargily/create-checkout`:
   - Authenticates via @supabase/ssr.
   - Calls `create_order()` with `payment_method='chargily'`.
   - Fetches order total.
-  - Sends to Chargily test endpoint `https://pay.chargily.net/test/api/v2/checkouts` with correct amount (plain DZD), currency `dzd`.
-  - Removed `webhook_url` (not allowed by Chargily v2 per-checkout).
-- Verified redirect to Chargily test payment page and correct amount.
+  - Sends to Chargily test endpoint with correct amount, currency `dzd`.
+  - Removed `webhook_url`.
+- Verified redirect to Chargily test payment page.
 
 ### Webhook
 - Created `/api/chargily/webhook`:
-  - Uses correct header name `signature`.
-  - Parses real event shape `{ type: "checkout.paid", data: { ... } }`.
-  - Uses timing-safe HMAC comparison.
+  - Correct header `signature`.
+  - Parses event shape `{ type: "checkout.paid", data: { ... } }`.
+  - Timing-safe HMAC comparison.
   - Mandatory webhook secret.
-  - Updates order to `status='confirmed', payment_status='paid'` only if currently pending and payment_method='chargily'.
-- Fixed `orders` table by adding `payment_status` column.
+  - Updates order to confirmed/paid.
+- Added `payment_status` column to `orders`.
+- Added check constraint on `payment_status`.
+- End-to-end webhook verified via ngrok: order updated to confirmed/paid.
 
 ### Abandoned order cleanup
 - Enabled `pg_cron`.
-- Created `cleanup_abandoned_chargily_orders()`:
-  - Finds pending Chargily orders older than 60 minutes.
-  - Restores stock and cancels order.
+- Created cleanup function for pending Chargily orders older than 60 minutes.
 - Scheduled every 10 minutes.
 
 ### Baridi Mob
-- Removed Baridi Mob from payment options to prevent stock-lock from unpaid orders.
-
-### Testing
-- Successfully created Chargily checkout, redirected, paid in sandbox, verified order/amount.
-- Webhook not testable on localhost; requires ngrok for real delivery.
+- Removed to prevent unpaid stock lock.
 
 ---
 
-## Current Database State
-- `orders`: id, created_at, customer_name, customer_phone, wilaya, address, total_amount, status, payment_method, user_id, email, payment_status.
-- `order_items`: id, order_id (FK), product_id (FK), quantity, price_at_purchase.
-- `addresses`: id, user_id, full_name, phone, street, wilaya, commune, postal_code, is_default, created_at.
-- `orders` policies: Users can view own orders, Users can update own pending orders, Admin can update orders. No public insert.
-- `order_items` policies: Users can view own order items.
-- `addresses` policy: Users can manage own addresses.
+## Week 4 — Marketplace Schema (NEXT)
+
+Planned:
+- Create `sellers` table.
+- Add `seller_id` to `products`.
+- Create `payouts` table.
+- RLS policies for sellers.
+- Seller onboarding and dashboard.
 
 ---
 
@@ -151,7 +148,7 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 - order_items SELECT policy: added.
 - Chargily amount format: corrected to plain DZD.
 - Chargily webhook header/payload: fixed.
-- `payment_status` column missing: added.
+- `payment_status` column missing: added with check constraint.
 - Chargily API URL: test mode `/test/api/v2`.
 
 ## Environment
