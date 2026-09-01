@@ -7,7 +7,7 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 - Security: Row Level Security, role-based admin access, server-side write validation.
 - SEO: Product metadata and JSON-LD.
 - Regional: 69 wilayas, real address management.
-- Payments: COD + Chargily (later).
+- Payments: COD + Chargily.
 - Marketplace: sellers, order_items, payouts (later).
 
 ---
@@ -16,124 +16,123 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 
 ### Priority 0: Email relay security
 - Fixed open email relay in `/api/emails/send`.
-- Replaced direct `Resend` client instantiation with lazy init.
-- Added auth check via `@supabase/ssr` server client.
-- Verified: logged-out returns 401, logged-in with own order returns 200, other user's order returns 403.
+- Lazy-init Resend client, auth check via @supabase/ssr.
+- Verified 401/200/403 behavior.
 - Committed.
 
 ### Day 1: Database & RLS
-- Created `profiles` table with role (customer/seller/admin), RLS enabled.
-- Created `handle_new_user` trigger to auto-create profile on signup.
-- Created `prevent_role_change` trigger to block role changes except service_role.
-- Created `is_admin()` Postgres function.
-- Enabled RLS on all public tables (products, orders, order_items, posts, subscribers).
+- Created `profiles` table with roles, RLS enabled.
+- Added `handle_new_user` trigger and `prevent_role_change` trigger.
+- Created `is_admin()` function.
+- Enabled RLS on all public tables.
 - Dropped duplicate/insecure policies.
-- Fixed `order_items.product_id` type from uuid to bigint, set `order_id` and `product_id` NOT NULL.
+- Fixed `order_items.product_id` type to bigint, set NOT NULL.
 - Created new policies using `is_admin()` and `auth.uid()`.
 - Seeded admin role.
-- Verified policies and column types.
-- Committed migration file `supabase/migrations/0001_week1_security_seo.sql`.
+- Verified policies and columns.
+- Committed migration file.
 
 ### Day 2: Middleware
-- Migrated to `@supabase/ssr` in `middleware.ts`.
+- Migrated to `@supabase/ssr`.
 - Used `rpc('is_admin')` for admin check.
 - Removed client-side admin email check.
-- Verified logged-out, normal user, admin redirects.
-- Fixed Turbopack middleware not running in dev by testing in production mode.
+- Fixed Turbopack middleware not running in dev by using production mode.
 - Applied cookie-transplant fix on redirects.
+- Verified logged-out, normal user, admin redirects.
 - Committed.
 
-### Day 3: Client Supabase migration & remaining admin checks
-- Replaced `src/lib/supabase.ts` with `createBrowserClient` from `@supabase/ssr`.
+### Day 3: Client Supabase migration & admin checks
+- Replaced client with `createBrowserClient` from `@supabase/ssr`.
 - Fixed login persistence and middleware session visibility.
-- Updated `login/page.tsx` and `Header.tsx` to query `profiles` role.
-- Verified no admin link for normal user, admin link for admin.
+- Updated login/Header to query profiles role.
 - Committed.
 
-### Day 4: RLS policies cleanup
-- Verified no duplicate policies left.
-- `order_items` initially had zero policies (locked down until Week 2).
-- All RLS enabled.
+### Day 4: RLS cleanup
+- Confirmed no duplicate policies.
+- `order_items` intentionally had no policies until Week 2.
 
 ### Day 5: Product SEO & wilayas
-- Replaced `product-details/[id]/page.tsx` with server component.
-- Added `generateMetadata` and JSON-LD Product schema.
-- Updated `DeliverySection.tsx` wilaya list to 69 wilayas.
-- Verified SEO tags and 69 options.
+- Server component for product details with `generateMetadata` and JSON-LD.
+- Updated wilaya list to 69.
 - Committed.
-
-### Week 1 Final
-- All changes committed and pushed to GitHub.
-- `Progress.MD` created.
-- Migration file committed.
 
 ---
 
 ## Week 2 — Server-side Writes & Addresses (COMPLETE)
 
-### Step 1: Addresses table
-- Created `addresses` table with RLS.
-- Policy: "Users can manage own addresses".
-- Verified.
+### Addresses & RLS
+- Created `addresses` table with `Users can manage own addresses` policy (ALL, auth.uid() = user_id).
+- Replaced mock addresses with real CRUD.
 
-### Step 2: Real address management
-- Replaced mock addresses with real fetch and save to Supabase.
-- Verified multiple addresses persist.
-
-### Step 3: Use selected address in order creation
-- Updated `CheckoutInteractive` to use selected address fields.
-- Verified order row contains real address data.
-
-### Step 4: Server-side order creation + order_items
+### Server-side order creation
 - Added `SUPABASE_SERVICE_ROLE_KEY`.
 - Created `src/lib/supabase-admin.ts`.
-- Created `src/app/api/orders/route.ts`:
-  - Authenticates via `@supabase/ssr`.
-  - Calls `create_order()` SQL function using service role.
-  - Strips client-sent price/title; only sends `id` and `quantity`.
-  - Returns `orderId` and `total`.
+- Created `src/app/api/orders/route.ts`.
 - Created Postgres function `create_order()`:
   - Atomic transaction with `FOR UPDATE` row locks.
-  - Aggregates duplicate product IDs in cart before stock check.
-  - Validates address ownership inside function.
+  - Aggregates duplicate product IDs.
+  - Validates address ownership.
   - Fetches real product prices.
   - Computes delivery/tax/total server-side.
-  - Inserts into `orders` and `order_items`.
+  - Inserts `orders` and `order_items`.
   - Decrements stock.
-  - Restricted execute to `service_role`.
-- Verified:
-  - POST `/api/orders` returns 200 and real total.
-  - No direct POST to Supabase `/rest/v1/orders`.
-  - Duplicate product IDs in a crafted request aggregated correctly.
-  - Stock decremented correctly.
-  - Normal UI order still works.
+  - Restricted to service_role.
+- Verified duplicate product aggregation and stock decrement.
 
-### Step 5: Order details & user orders migration to order_items
-- Added foreign keys on `order_items` (order_id cascade, product_id restrict).
-- Added SELECT policy "Users can view own order items" scoped to order owner or admin.
-- Replaced `order-details/page.tsx` to read from `order_items` joined with `products`.
-- Replaced `user/page.tsx` and `user/orders/page.tsx` to fetch order items with product info.
-- Verified:
-  - Order details page shows product name, image, quantity, line total.
-  - `/user/orders` and `/user` show product thumbnails.
-  - No "Détails des articles non disponibles" when items exist.
+### Order details & user orders migration
+- Added foreign keys on `order_items`.
+- Added SELECT policy "Users can view own order items".
+- Updated `order-details`, `user`, and `user/orders` to read from `order_items`.
+- Dropped legacy `orders.items` column.
 
-### Step 6: Drop legacy orders.items column
-- Dropped `orders.items` after pages migrated.
-- Verified column removed; orders table now has only normalized fields.
-- Placed a final test order successfully.
+---
 
-### Current Database State
-- `orders`: id, created_at, customer_name, customer_phone, wilaya, address, total_amount, status, payment_method, user_id, email. No `items` column.
-- `order_items`: id, order_id (FK to orders), product_id (FK to products), quantity, price_at_purchase.
+## Week 3 — Chargily Pay Integration (CORE COMPLETE, webhook pending local testing)
+
+### Chargily keys & env
+- Added `CHARGILY_SECRET_KEY` and `CHARGILY_WEBHOOK_SECRET` to `.env.local`.
+
+### Checkout creation
+- Created `/api/chargily/create-checkout`:
+  - Authenticates via @supabase/ssr.
+  - Calls `create_order()` with `payment_method='chargily'`.
+  - Fetches order total.
+  - Sends to Chargily test endpoint `https://pay.chargily.net/test/api/v2/checkouts` with correct amount (plain DZD), currency `dzd`.
+  - Removed `webhook_url` (not allowed by Chargily v2 per-checkout).
+- Verified redirect to Chargily test payment page and correct amount.
+
+### Webhook
+- Created `/api/chargily/webhook`:
+  - Uses correct header name `signature`.
+  - Parses real event shape `{ type: "checkout.paid", data: { ... } }`.
+  - Uses timing-safe HMAC comparison.
+  - Mandatory webhook secret.
+  - Updates order to `status='confirmed', payment_status='paid'` only if currently pending and payment_method='chargily'.
+- Fixed `orders` table by adding `payment_status` column.
+
+### Abandoned order cleanup
+- Enabled `pg_cron`.
+- Created `cleanup_abandoned_chargily_orders()`:
+  - Finds pending Chargily orders older than 60 minutes.
+  - Restores stock and cancels order.
+- Scheduled every 10 minutes.
+
+### Baridi Mob
+- Removed Baridi Mob from payment options to prevent stock-lock from unpaid orders.
+
+### Testing
+- Successfully created Chargily checkout, redirected, paid in sandbox, verified order/amount.
+- Webhook not testable on localhost; requires ngrok for real delivery.
+
+---
+
+## Current Database State
+- `orders`: id, created_at, customer_name, customer_phone, wilaya, address, total_amount, status, payment_method, user_id, email, payment_status.
+- `order_items`: id, order_id (FK), product_id (FK), quantity, price_at_purchase.
 - `addresses`: id, user_id, full_name, phone, street, wilaya, commune, postal_code, is_default, created_at.
-- `orders` policies: Admin can update orders, Users can update own pending orders, Users can view own orders. No public insert.
+- `orders` policies: Users can view own orders, Users can update own pending orders, Admin can update orders. No public insert.
 - `order_items` policies: Users can view own order items.
-
-### Week 2 Final
-- All changes committed to git.
-- Pending push to remote? (confirm after commit)
-- Ready for Week 3.
+- `addresses` policy: Users can manage own addresses.
 
 ---
 
@@ -142,14 +141,18 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 - Session not persisting: fixed with `createBrowserClient`.
 - Email relay open: fixed.
 - Duplicate policies: cleaned.
-- Type mismatch `order_items.product_id`: fixed.
-- Signup rate limit: resolved by waiting or dashboard user creation.
+- Type mismatch order_items.product_id: fixed.
+- Signup rate limit: resolved.
 - Google Fonts fetch error: removed imports.
 - Git push network failure: resolved.
 - Order creation client-side: moved to server route.
-- Stock overselling risk: fixed with atomic `FOR UPDATE` and aggregation.
-- Duplicate product ID in cart: fixed by aggregating before check.
-- order_items had no SELECT policy: added "Users can view own order items".
+- Stock overselling: fixed with atomic `FOR UPDATE` and aggregation.
+- Duplicate product ID in cart: fixed by aggregation.
+- order_items SELECT policy: added.
+- Chargily amount format: corrected to plain DZD.
+- Chargily webhook header/payload: fixed.
+- `payment_status` column missing: added.
+- Chargily API URL: test mode `/test/api/v2`.
 
 ## Environment
 - Local dev on Kali Linux.
