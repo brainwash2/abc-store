@@ -122,14 +122,48 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 
 ---
 
-## Week 4 — Marketplace Schema (NEXT)
+## Week 4 — Marketplace Schema & Seller Dashboard (COMPLETE)
+
+### Marketplace schema
+- Created `sellers` table with KYC fields, commission_rate, is_active.
+- Added `seller_id` to `products`.
+- Added `seller_id` and `user_id` to `order_items` (snapshot for historical accuracy).
+- Created `payouts` table.
+- Added RLS policies:
+  - Sellers can view/update own profile (except sensitive fields protected by trigger).
+  - Admin can view all sellers.
+  - Public can view approved sellers.
+  - Sellers can insert/update/delete own products only if approved/active.
+  - Sellers can view own order items.
+  - Sellers can view orders containing their items.
+- Created `prevent_seller_status_change` trigger.
+- Created `approve_seller` and `reject_seller` functions (service_role only).
+- Backfilled `user_id` on existing order_items and fixed RLS recursion.
+
+### Seller dashboard UI
+- `/seller/apply` – application form with check-first logic (uses `.maybeSingle()`).
+- `/seller` – dashboard home showing store name/KYC status.
+- `/seller/products` – list and delete own products.
+- `/seller/products/add` – add product with category select.
+- `/seller/orders` – list orders containing seller's items (grouped client-side).
+- `/seller/payouts` – placeholder, will be populated in Week 5.
+- Admin sellers page at `/admin/sellers` with approve/reject actions.
+- API route `/api/admin/sellers` for admin actions.
+
+### Testing
+- Local: all seller flow tests passed (apply, approve, dashboard, add product, customer order, seller orders, reject redirect).
+- Live smoke test passed: homepage, admin, rejected seller redirect, seller apply, product SEO.
+- Known issue: live session drops when navigating to `/user/orders` via header link; direct URL works. Deferred to Week 6 hardening.
+
+---
+
+## Week 5 — Payouts & Seller Data Scoping (NEXT)
 
 Planned:
-- Create `sellers` table.
-- Add `seller_id` to `products`.
-- Create `payouts` table.
-- RLS policies for sellers.
-- Seller onboarding and dashboard.
+- `generate_payouts` SQL function to calculate seller payouts based on paid orders.
+- Admin payouts page and API route to trigger generation.
+- Seller payouts page showing real data.
+- Multi-seller order visibility tightening (deferred to Week 6 if time-constrained, but noted for real third-party sellers).
 
 ---
 
@@ -150,6 +184,7 @@ Planned:
 - Chargily webhook header/payload: fixed.
 - `payment_status` column missing: added with check constraint.
 - Chargily API URL: test mode `/test/api/v2`.
+- Live Vercel: session drops when navigating to /user/orders from header. Direct URL works. Defer to Week 6.
 
 ## Environment
 - Local dev on Kali Linux.
