@@ -113,6 +113,30 @@ export default function CheckoutInteractive() {
     setIsProcessing(true);
 
     try {
+      if (selectedPaymentMethod === 'chargily') {
+        const response = await fetch('/api/chargily/create-checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            items: items.map((item) => ({
+              id: item.id,
+              title: item.title,
+              price: item.price,
+              image: item.image,
+              quantity: item.quantity,
+            })),
+            addressId: selectedAddressId,
+            deliveryMethod: selectedDeliveryMethod,
+          }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to create Chargily checkout');
+
+        window.location.href = data.checkout_url;
+        return;
+      }
+
       const response = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -131,10 +155,7 @@ export default function CheckoutInteractive() {
       });
 
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to create order');
-      }
+      if (!response.ok) throw new Error(data.error || 'Failed to create order');
 
       clearCart();
       router.push(`/order-details?order_id=${data.orderId}&status=success`);

@@ -25,13 +25,9 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { data: { user } } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
 
-  // Helper to copy cookies to a redirect response
   const copyCookies = (response: NextResponse) => {
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       response.cookies.set(cookie.name, cookie.value, cookie);
@@ -45,11 +41,29 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set('next', path);
       return copyCookies(NextResponse.redirect(loginUrl));
     }
-
     const { data: isAdmin, error } = await supabase.rpc('is_admin');
-
     if (error || !isAdmin) {
       return copyCookies(NextResponse.redirect(new URL('/user/dashboard', request.url)));
+    }
+  }
+
+  if (path.startsWith('/seller')) {
+    if (!user) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('next', path);
+      return copyCookies(NextResponse.redirect(loginUrl));
+    }
+
+    if (path !== '/seller/apply') {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+
+      if (!profile || (profile.role !== 'seller' && profile.role !== 'admin')) {
+        return copyCookies(NextResponse.redirect(new URL('/user/dashboard', request.url)));
+      }
     }
   }
 
@@ -65,5 +79,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/user/:path*'],
+  matcher: ['/admin/:path*', '/user/:path*', '/seller/:path*'],
 };
