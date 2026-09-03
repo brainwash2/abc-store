@@ -153,7 +153,6 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 ### Testing
 - Local: all seller flow tests passed.
 - Live smoke test passed: homepage, admin, rejected seller redirect, seller apply, product SEO.
-- Known issue: live session drops on header navigation to `/user/orders`; direct URL works. Deferred to Week 6.
 
 ---
 
@@ -180,32 +179,45 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 
 ---
 
-## Week 6 — Hardening & Session-Drop Investigation (IN PROGRESS)
+## Week 6 — Hardening & Performance (COMPLETE)
 
 ### Session-drop fix
-- Issue: live Vercel session dropped when navigating to `/user/orders` via header link; direct URL worked.
-- Root cause: race between middleware edge runtime and client-side cookies for `/user` routes.
-- Fix: removed `/user` from middleware protection; added client-side auth guard in `UserLayout`.
-- Security: RLS remains the primary boundary; client layout redirects unauthenticated users.
-- Verified: live navigation now stable.
+- Issue: live Vercel session dropped on `/user/orders` header navigation.
+- Root cause: middleware/server-side session check race with client-side cookies.
+- Fix: removed `/user` from middleware; added client-side auth guard in `UserLayout`.
+- Verified live navigation stable; RLS remains primary security boundary.
 
-### Rate limiting (Postgres)
+### Rate limiting (Postgres, no Upstash)
 - Created `rate_limits` table and `check_rate_limit` function (service_role only).
-- Created `src/lib/rate-limit.ts` helper.
-- Applied rate limiting to `/api/orders` (10 requests / 60 sec per user).
-- TODO: apply to `/api/emails/send`, `/api/chargily/create-checkout`, admin endpoints.
+- Applied to `/api/orders`, `/api/emails/send`, `/api/chargily/create-checkout`, `/api/admin/sellers`, `/api/admin/payouts`.
 
-### Input validation (Zod)
-- TODO: add Zod schemas to API routes.
+### Input validation
+- Added Zod schemas in `src/lib/validation/schemas.ts`.
+- Applied to order, chargily, and email routes.
 
-### Supabase Storage for product images
-- TODO.
+### Supabase Storage
+- Created public bucket `product-images`.
+- Added storage policy for public read.
+- Created `/api/upload` route using service role.
+- Updated seller add product page to support file upload.
+- Verified upload worked: product image URL points to Supabase Storage.
 
-### ISR for product pages
-- TODO: add `revalidate` to `product-details/[id]/page.tsx`.
+### ISR
+- Added `export const revalidate = 60` to product details page.
 
 ### RLS audit
-- TODO: re-run pg_policies and test each role.
+- Re-ran `pg_policies`; all policies correctly scoped; no unauthorized public access except intentional public read on products/published posts/approved sellers.
+
+---
+
+## Week 7 — End-to-End UAT (NEXT)
+
+Planned:
+- Full customer flow: register, address, browse, cart, COD checkout, Chargily checkout.
+- Seller flow: apply, approve, add/edit/delete products, orders, payouts.
+- Admin flow: manage products, orders, blog, sellers, payouts.
+- Edge cases: insufficient stock, duplicate cart, abandoned Chargily, rejected seller.
+- Live environment final smoke.
 
 ---
 
