@@ -22,6 +22,7 @@ export default function SellerLayout({ children }: { children: React.ReactNode }
             <Link
               key={item.href}
               href={item.href}
+              prefetch={false}
               className={`block p-2 rounded hover:bg-slate-700 ${pathname === item.href ? 'bg-slate-700' : ''}`}
             >
               {item.label}

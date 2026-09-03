@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import {
@@ -17,7 +17,19 @@ import Link from 'next/link';
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [loading] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkAdmin = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/login');
+      } else {
+        setLoading(false);
+      }
+    };
+    checkAdmin();
+  }, [router]);
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
@@ -26,6 +38,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { icon: FileText, label: 'Blog', href: '/admin/blog' },
     { icon: Settings, label: 'Paramètres', href: '/admin/settings' },
   ];
+
+  if (loading) return <div className="h-screen flex items-center justify-center">Chargement...</div>;
 
   return (
     <div className="min-h-screen bg-slate-50 flex">
@@ -42,10 +56,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-primary text-white'
-                    : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                  isActive ? 'bg-primary text-white' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                 }`}
               >
                 <item.icon size={20} />
@@ -64,7 +77,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </aside>
 
-      <main className="ml-64 flex-1 p-8">{children}</main>
+      <main className="ml-64 flex-1 p-8">
+        {children}
+      </main>
     </div>
   );
 }
