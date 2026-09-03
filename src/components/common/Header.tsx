@@ -128,7 +128,12 @@ const Header = ({
                     </div>
                   )}
                   {accountMenuItems.map((item) => (
-                    <Link key={item.href} href={item.href} className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-violet-50 hover:text-violet-700 rounded-lg transition-colors">
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      prefetch={false}
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-violet-50 hover:text-violet-700 rounded-lg transition-colors"
+                    >
                       <Icon name={item.icon as any} size={18} />
                       {item.label[currentLanguage]}
                     </Link>
@@ -169,7 +174,13 @@ const Header = ({
             <div className="pt-4 space-y-3">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Compte</p>
               {accountMenuItems.map((item) => (
-                <Link key={item.href} href={item.href} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 py-2 text-slate-600">
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  prefetch={false}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-3 py-2 text-slate-600"
+                >
                   <Icon name={item.icon as any} size={20} />
                   {item.label[currentLanguage]}
                 </Link>
