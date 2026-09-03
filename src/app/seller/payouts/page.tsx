@@ -32,6 +32,7 @@ export default function SellerPayoutsPage() {
               <th className="p-2">Amount</th>
               <th className="p-2">Status</th>
               <th className="p-2">Period</th>
+              <th className="p-2">Paid At</th>
             </tr>
           </thead>
           <tbody>
@@ -40,6 +41,7 @@ export default function SellerPayoutsPage() {
                 <td className="p-2">{p.amount} DZD</td>
                 <td className="p-2">{p.status}</td>
                 <td className="p-2">{p.period_start} - {p.period_end}</td>
+                <td className="p-2">{p.paid_at ? new Date(p.paid_at).toLocaleDateString() : '-'}</td>
               </tr>
             ))}
           </tbody>
