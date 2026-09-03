@@ -146,24 +146,66 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 - `/seller/products` – list and delete own products.
 - `/seller/products/add` – add product with category select.
 - `/seller/orders` – list orders containing seller's items (grouped client-side).
-- `/seller/payouts` – placeholder, will be populated in Week 5.
+- `/seller/payouts` – shows payouts.
 - Admin sellers page at `/admin/sellers` with approve/reject actions.
 - API route `/api/admin/sellers` for admin actions.
 
 ### Testing
-- Local: all seller flow tests passed (apply, approve, dashboard, add product, customer order, seller orders, reject redirect).
+- Local: all seller flow tests passed.
 - Live smoke test passed: homepage, admin, rejected seller redirect, seller apply, product SEO.
-- Known issue: live session drops when navigating to `/user/orders` via header link; direct URL works. Deferred to Week 6 hardening.
+- Known issue: live session drops on header navigation to `/user/orders`; direct URL works. Deferred to Week 6.
 
 ---
 
-## Week 5 — Payouts & Seller Data Scoping (NEXT)
+## Week 5 — Payouts (COMPLETE)
 
-Planned:
-- `generate_payouts` SQL function to calculate seller payouts based on paid orders.
-- Admin payouts page and API route to trigger generation.
-- Seller payouts page showing real data.
-- Multi-seller order visibility tightening (deferred to Week 6 if time-constrained, but noted for real third-party sellers).
+### Payout system
+- Added `payout_id` to `order_items` for claim-based idempotency.
+- Created `generate_payouts(p_start, p_end)` function:
+  - Inserts placeholder payout row first (satisfies FK).
+  - Atomically claims eligible `order_items` via `UPDATE ... RETURNING`.
+  - Computes payout amount from claimed lines only.
+  - Supports COD (`payment_method='cash_delivery'` and `status='delivered'`) and Chargily (`payment_status='paid'`).
+  - Deletes placeholder if no items claimed.
+- Created `mark_payout_paid(p_payout_id)` function (service_role only, pending-only guard).
+- Created admin API route `/api/admin/payouts` for generate/mark_paid actions.
+- Created admin payouts page and seller payouts page.
+
+### Testing
+- Verified payout generation for delivered COD order (amount = price × 0.9).
+- Verified Chargily paid order included.
+- Overlapping period test: no double payout.
+- Mark paid: status `paid`, `paid_at` set.
+- Seller sees own payout; admin sees all payouts.
+
+---
+
+## Week 6 — Hardening & Session-Drop Investigation (IN PROGRESS)
+
+### Session-drop fix
+- Issue: live Vercel session dropped when navigating to `/user/orders` via header link; direct URL worked.
+- Root cause: race between middleware edge runtime and client-side cookies for `/user` routes.
+- Fix: removed `/user` from middleware protection; added client-side auth guard in `UserLayout`.
+- Security: RLS remains the primary boundary; client layout redirects unauthenticated users.
+- Verified: live navigation now stable.
+
+### Rate limiting (Postgres)
+- Created `rate_limits` table and `check_rate_limit` function (service_role only).
+- Created `src/lib/rate-limit.ts` helper.
+- Applied rate limiting to `/api/orders` (10 requests / 60 sec per user).
+- TODO: apply to `/api/emails/send`, `/api/chargily/create-checkout`, admin endpoints.
+
+### Input validation (Zod)
+- TODO: add Zod schemas to API routes.
+
+### Supabase Storage for product images
+- TODO.
+
+### ISR for product pages
+- TODO: add `revalidate` to `product-details/[id]/page.tsx`.
+
+### RLS audit
+- TODO: re-run pg_policies and test each role.
 
 ---
 
@@ -184,7 +226,8 @@ Planned:
 - Chargily webhook header/payload: fixed.
 - `payment_status` column missing: added with check constraint.
 - Chargily API URL: test mode `/test/api/v2`.
-- Live Vercel: session drops when navigating to /user/orders from header. Direct URL works. Defer to Week 6.
+- Live Vercel session drop on `/user/orders`: fixed by removing `/user` from middleware + client-side guard.
+- Commission rate is read at payout time, not snapshotted on order_items. Deferred until real commission changes occur.
 
 ## Environment
 - Local dev on Kali Linux.
