@@ -3,6 +3,7 @@ import { Resend } from 'resend';
 import { generateOrderEmail, generateShippedEmail } from '@/lib/email-templates';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { isRateLimited } from '@/lib/rate-limit';
+import { emailSendSchema } from '@/lib/validation/schemas';
 
 export async function POST(request: Request) {
   const supabase = await createServerSupabaseClient();
@@ -15,7 +16,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Rate limiting: 5 emails per 60 seconds
   if (await isRateLimited(`email:${user.id}`, 5, 60)) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
@@ -27,11 +27,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { type, orderId } = body;
-
-  if (!orderId || !type) {
-    return NextResponse.json({ error: 'Missing orderId or type' }, { status: 400 });
+  const parsed = emailSendSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues.map(i => i.message).join(', ') }, { status: 400 });
   }
+
+  const { type, orderId } = parsed.data;
 
   const { data: order, error } = await supabase
     .from('orders')

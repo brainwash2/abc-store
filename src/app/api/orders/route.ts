@@ -2,12 +2,10 @@ import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { isRateLimited } from '@/lib/rate-limit';
+import { orderSchema } from '@/lib/validation/schemas';
 
 type CartItemInput = {
   id: string;
-  title: string;
-  price: number;
-  image: string;
   quantity: number;
 };
 
@@ -22,9 +20,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Rate limiting: 10 orders per 60 seconds per user
-  const rateKey = `order:${user.id}`;
-  if (await isRateLimited(rateKey, 10, 60)) {
+  if (await isRateLimited(`order:${user.id}`, 10, 60)) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
 
@@ -35,17 +31,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { items, addressId, deliveryMethod, paymentMethod } = body;
-
-  if (!Array.isArray(items) || items.length === 0) {
-    return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
+  const parsed = orderSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues.map(i => i.message).join(', ') }, { status: 400 });
   }
 
-  if (!addressId || !deliveryMethod || !paymentMethod) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
-  }
-
-  const cartItems = items.map((item: CartItemInput) => ({
+  const cartItems = parsed.data.items.map((item) => ({
     id: item.id,
     quantity: item.quantity,
   }));
@@ -53,9 +44,9 @@ export async function POST(request: Request) {
   try {
     const { data: orderId, error } = await supabaseAdmin.rpc('create_order', {
       p_user_id: user.id,
-      p_address_id: addressId,
-      p_delivery_method: deliveryMethod,
-      p_payment_method: paymentMethod,
+      p_address_id: parsed.data.addressId,
+      p_delivery_method: parsed.data.deliveryMethod,
+      p_payment_method: parsed.data.paymentMethod,
       p_items: cartItems,
     });
 

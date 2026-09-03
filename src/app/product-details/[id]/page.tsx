@@ -6,6 +6,8 @@ import ProductInfo from '../components/ProductInfo';
 import ProductDescription from '../components/ProductDescription';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 
+export const revalidate = 60;
+
 type Product = {
   id: string | number;
   name: string;

@@ -3,14 +3,7 @@ import https from 'https';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { isRateLimited } from '@/lib/rate-limit';
-
-type CartItemInput = {
-  id: string;
-  title: string;
-  price: number;
-  image: string;
-  quantity: number;
-};
+import { chargilyCheckoutSchema } from '@/lib/validation/schemas';
 
 function chargilyRequest(path: string, apiKey: string, body: any): Promise<{ status: number; data: any }> {
   return new Promise((resolve, reject) => {
@@ -61,7 +54,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  // Rate limiting: 5 checkouts per 60 seconds
   if (await isRateLimited(`chargily:${user.id}`, 5, 60)) {
     return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
@@ -73,16 +65,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { items, addressId, deliveryMethod } = body;
-
-  if (!Array.isArray(items) || items.length === 0) {
-    return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
-  }
-  if (!addressId || !deliveryMethod) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+  const parsed = chargilyCheckoutSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: parsed.error.issues.map(i => i.message).join(', ') }, { status: 400 });
   }
 
-  const cartItems = items.map((item: CartItemInput) => ({
+  const cartItems = parsed.data.items.map((item) => ({
     id: item.id,
     quantity: item.quantity,
   }));
@@ -91,8 +79,8 @@ export async function POST(request: Request) {
   try {
     const { data: createdOrderId, error } = await supabaseAdmin.rpc('create_order', {
       p_user_id: user.id,
-      p_address_id: addressId,
-      p_delivery_method: deliveryMethod,
+      p_address_id: parsed.data.addressId,
+      p_delivery_method: parsed.data.deliveryMethod,
       p_payment_method: 'chargily',
       p_items: cartItems,
     });
