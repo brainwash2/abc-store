@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import https from 'https';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { isRateLimited } from '@/lib/rate-limit';
 
 type CartItemInput = {
   id: string;
@@ -11,7 +12,6 @@ type CartItemInput = {
   quantity: number;
 };
 
-// Custom HTTPS request forcing IPv4 and 30s timeout
 function chargilyRequest(path: string, apiKey: string, body: any): Promise<{ status: number; data: any }> {
   return new Promise((resolve, reject) => {
     const postData = JSON.stringify(body);
@@ -55,15 +55,15 @@ export async function POST(request: Request) {
 
   const {
     data: { user },
-    error: authError,
   } = await supabase.auth.getUser();
-
-  // Detailed logging
-  console.log('AUTH DEBUG user:', user?.email || 'NO USER');
-  console.log('AUTH DEBUG error object:', JSON.stringify(authError));
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limiting: 5 checkouts per 60 seconds
+  if (await isRateLimited(`chargily:${user.id}`, 5, 60)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
 
   let body: any;

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { generateOrderEmail, generateShippedEmail } from '@/lib/email-templates';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { isRateLimited } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   const supabase = await createServerSupabaseClient();
@@ -12,6 +13,11 @@ export async function POST(request: Request) {
 
   if (!user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Rate limiting: 5 emails per 60 seconds
+  if (await isRateLimited(`email:${user.id}`, 5, 60)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
   }
 
   let body: any;
@@ -45,10 +51,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'No email on order' }, { status: 400 });
   }
 
-  // Lazy-initialize Resend to avoid build-time error if key is missing
   const resendApiKey = process.env.RESEND_API_KEY;
   if (!resendApiKey) {
-    console.error('RESEND_API_KEY is missing');
+    console.error('RESEND_API_KEY missing');
     return NextResponse.json({ error: 'Email service not configured' }, { status: 500 });
   }
 

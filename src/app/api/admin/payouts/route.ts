@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { isRateLimited } from '@/lib/rate-limit';
 
 export async function POST(request: Request) {
   const supabase = await createServerSupabaseClient();
@@ -9,6 +10,10 @@ export async function POST(request: Request) {
 
   const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
   if (adminError || !isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  if (await isRateLimited(`adminpayout:${user.id}`, 20, 60)) {
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+  }
 
   const { action, period_start, period_end, payoutId } = await request.json();
 
