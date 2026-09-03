@@ -39,6 +39,13 @@ export async function middleware(request: NextRequest) {
     return response;
   };
 
+  // Skip auth for prefetch requests to prevent redirect interference
+  const isPrefetch = request.headers.get('next-router-prefetch') === '1' ||
+                     request.headers.get('purpose') === 'prefetch';
+  if (isPrefetch) {
+    return supabaseResponse;
+  }
+
   if (path.startsWith('/admin')) {
     if (!user) {
       const loginUrl = new URL('/login', request.url);
