@@ -1,19 +1,37 @@
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
+import React, { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import Link from 'next/link';
 import { User, ShoppingBag, LogOut, Home } from 'lucide-react';
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    async function checkAuth() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        const loginUrl = `/login?next=${encodeURIComponent(pathname)}`;
+        router.replace(loginUrl);
+      } else {
+        setChecking(false);
+      }
+    }
+    checkAuth();
+  }, [pathname, router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/'); // Go back to homepage
+    router.push('/');
   };
+
+  if (checking) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
 
   const menuItems = [
     { icon: Home, label: 'Accueil Boutique', href: '/' },
@@ -23,7 +41,6 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
-      {/* Sidebar */}
       <aside className="w-full md:w-64 bg-white border-r border-slate-200 md:fixed md:h-full z-10">
         <div className="p-6 border-b border-slate-100">
           <h1 className="text-2xl font-black text-primary">Mon Compte</h1>
@@ -37,9 +54,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
                 key={item.href}
                 href={item.href}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                  isActive 
-                    ? 'bg-primary/10 text-primary font-bold' 
-                    : 'text-slate-500 hover:bg-slate-50'
+                  isActive ? 'bg-primary/10 text-primary font-bold' : 'text-slate-500 hover:bg-slate-50'
                 }`}
               >
                 <Icon size={20} />
@@ -47,8 +62,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
               </Link>
             );
           })}
-          
-          <button 
+
+          <button
             onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-3 w-full rounded-xl text-red-500 hover:bg-red-50 transition-colors mt-8"
           >
@@ -58,11 +73,8 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
         </nav>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 md:ml-64 p-4 md:p-8">
-        <div className="max-w-4xl mx-auto">
-          {children}
-        </div>
+        <div className="max-w-4xl mx-auto">{children}</div>
       </main>
     </div>
   );

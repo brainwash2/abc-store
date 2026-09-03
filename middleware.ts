@@ -67,17 +67,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  if (path.startsWith('/user')) {
-    if (!user) {
-      const loginUrl = new URL('/login', request.url);
-      loginUrl.searchParams.set('next', path);
-      return copyCookies(NextResponse.redirect(loginUrl));
-    }
-  }
-
   return supabaseResponse;
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/user/:path*', '/seller/:path*'],
+  matcher: ['/admin/:path*', '/seller/:path*'],
 };
