@@ -17,6 +17,8 @@ begin
     where s.kyc_status = 'approved' and s.is_active
   loop
     v_payout_id := gen_random_uuid();
+    insert into public.payouts (id, seller_id, amount, status, period_start, period_end)
+    values (v_payout_id, v_seller.id, 0, 'pending', p_start, p_end);
 
     with claimed as (
       update public.order_items oi
@@ -32,8 +34,9 @@ begin
     select coalesce(sum(line_amount), 0) into v_amount from claimed;
 
     if v_amount > 0 then
-      insert into public.payouts (id, seller_id, amount, status, period_start, period_end)
-      values (v_payout_id, v_seller.id, v_amount, 'pending', p_start, p_end);
+      update public.payouts set amount = v_amount where id = v_payout_id;
+    else
+      delete from public.payouts where id = v_payout_id;
     end if;
   end loop;
 end;
