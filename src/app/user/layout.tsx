@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
@@ -9,29 +9,11 @@ import { User, ShoppingBag, LogOut, Home } from 'lucide-react';
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const [checking, setChecking] = useState(true);
-
-  useEffect(() => {
-    async function checkAuth() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        const loginUrl = `/login?next=${encodeURIComponent(pathname)}`;
-        router.replace(loginUrl);
-      } else {
-        setChecking(false);
-      }
-    }
-    checkAuth();
-  }, [pathname, router]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/');
   };
-
-  if (checking) {
-    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-  }
 
   const menuItems = [
     { icon: Home, label: 'Accueil Boutique', href: '/' },

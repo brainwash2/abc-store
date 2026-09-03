@@ -25,8 +25,12 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
+
+  console.log('MIDDLEWARE path:', path);
+  console.log('MIDDLEWARE cookies:', request.cookies.getAll().map(c => c.name));
+  console.log('MIDDLEWARE user:', user?.email || 'NO USER', 'error:', error?.message || 'none');
 
   const copyCookies = (response: NextResponse) => {
     supabaseResponse.cookies.getAll().forEach((cookie) => {
@@ -41,8 +45,8 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set('next', path);
       return copyCookies(NextResponse.redirect(loginUrl));
     }
-    const { data: isAdmin, error } = await supabase.rpc('is_admin');
-    if (error || !isAdmin) {
+    const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
+    if (adminError || !isAdmin) {
       return copyCookies(NextResponse.redirect(new URL('/user/dashboard', request.url)));
     }
   }
@@ -67,9 +71,17 @@ export async function middleware(request: NextRequest) {
     }
   }
 
+  if (path.startsWith('/user')) {
+    if (!user) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('next', path);
+      return copyCookies(NextResponse.redirect(loginUrl));
+    }
+  }
+
   return supabaseResponse;
 }
 
 export const config = {
-  matcher: ['/admin/:path*', '/seller/:path*'],
+  matcher: ['/admin/:path*', '/user/:path*', '/seller/:path*'],
 };
