@@ -12,7 +12,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    router.push('/');
+    window.location.href = '/';
   };
 
   const menuItems = [
@@ -32,17 +32,16 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
             const Icon = item.icon;
             const isActive = pathname === item.href;
             return (
-              <Link
+              <a
                 key={item.href}
                 href={item.href}
-                prefetch={false}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
                   isActive ? 'bg-primary/10 text-primary font-bold' : 'text-slate-500 hover:bg-slate-50'
                 }`}
               >
                 <Icon size={20} />
                 <span>{item.label}</span>
-              </Link>
+              </a>
             );
           })}
 

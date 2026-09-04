@@ -57,10 +57,7 @@ const Header = ({
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setUserEmail(null);
-    setIsAdmin(false);
-    router.push('/login');
-    setIsMobileMenuOpen(false);
+    window.location.href = '/login';
   };
 
   const handleLanguageToggle = () => {
@@ -128,15 +125,14 @@ const Header = ({
                     </div>
                   )}
                   {accountMenuItems.map((item) => (
-                    <Link
+                    <a
                       key={item.href}
                       href={item.href}
-                      prefetch={false}
                       className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-600 hover:bg-violet-50 hover:text-violet-700 rounded-lg transition-colors"
                     >
                       <Icon name={item.icon as any} size={18} />
                       {item.label[currentLanguage]}
-                    </Link>
+                    </a>
                   ))}
                   {userEmail && (
                     <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors mt-1">
@@ -174,16 +170,14 @@ const Header = ({
             <div className="pt-4 space-y-3">
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Compte</p>
               {accountMenuItems.map((item) => (
-                <Link
+                <a
                   key={item.href}
                   href={item.href}
-                  prefetch={false}
-                  onClick={() => setIsMobileMenuOpen(false)}
                   className="flex items-center gap-3 py-2 text-slate-600"
                 >
                   <Icon name={item.icon as any} size={20} />
                   {item.label[currentLanguage]}
-                </Link>
+                </a>
               ))}
               {userEmail && (
                 <button onClick={handleLogout} className="flex items-center gap-3 py-2 text-red-600 w-full text-left">
