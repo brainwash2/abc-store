@@ -35,6 +35,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
                   isActive ? 'bg-primary/10 text-primary font-bold' : 'text-slate-500 hover:bg-slate-50'
                 }`}
