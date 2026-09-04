@@ -182,13 +182,13 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 ## Week 6 — Hardening & Performance (COMPLETE)
 
 ### Session-drop fix
-- Issue: live Vercel session dropped on `/user/orders` header navigation.
-- Root cause: middleware/server-side session check race with client-side cookies.
-- Fix: removed `/user` from middleware; added client-side auth guard in `UserLayout`.
-- Verified live navigation stable; RLS remains primary security boundary.
+- Issue: live Vercel session dropped on protected links (`/user/orders`, `/user/dashboard`) when navigating via header or sidebar.
+- Root cause: Next.js client router cache reusing stale prefetch redirect for protected routes — upstream issue #88937.
+- Fix: used plain `<a>` tags (full page reload) for protected user links in `Header` and `UserLayout`; middleware server-side gating remains intact.
+- Verified live: session persisted across multiple navigations; no redirect loop.
 
 ### Rate limiting (Postgres, no Upstash)
-- Created `rate_limits` table and `check_rate_limit` function (service_role only).
+- Created `rate_limits` table and `check_rate_limit` function (atomic upsert, service_role only).
 - Applied to `/api/orders`, `/api/emails/send`, `/api/chargily/create-checkout`, `/api/admin/sellers`, `/api/admin/payouts`.
 
 ### Input validation
@@ -198,7 +198,7 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 ### Supabase Storage
 - Created public bucket `product-images`.
 - Added storage policy for public read.
-- Created `/api/upload` route using service role.
+- Created `/api/upload` route with file type/size validation and admin/seller role check.
 - Updated seller add product page to support file upload.
 - Verified upload worked: product image URL points to Supabase Storage.
 
@@ -238,8 +238,9 @@ Planned:
 - Chargily webhook header/payload: fixed.
 - `payment_status` column missing: added with check constraint.
 - Chargily API URL: test mode `/test/api/v2`.
-- Live Vercel session drop on `/user/orders`: fixed by removing `/user` from middleware + client-side guard.
+- Live Vercel session drop on protected links: fixed by using plain anchors for protected user links. Root cause: client router cache stale redirect.
 - Commission rate is read at payout time, not snapshotted on order_items. Deferred until real commission changes occur.
+- Product-catalog SEO gap: product catalog page is still client-rendered; data fetch in `useEffect`, not server-side. Deferred explicitly to post-launch optimization. (Product details page is server-rendered with ISR.)
 
 ## Environment
 - Local dev on Kali Linux.
