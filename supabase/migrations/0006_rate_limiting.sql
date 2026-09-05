@@ -1,4 +1,4 @@
--- Rate limiting function (missing migration file, retroactively added)
+-- Rate limiting function, corrected to bucket by actual window length
 CREATE OR REPLACE FUNCTION public.check_rate_limit(p_key text, p_limit integer, p_window interval)
  RETURNS boolean
  LANGUAGE plpgsql
@@ -6,11 +6,12 @@ CREATE OR REPLACE FUNCTION public.check_rate_limit(p_key text, p_limit integer, 
  SET search_path TO 'public'
 AS $function$
 declare
-  v_window_start timestamptz := date_trunc('second', now());
+  v_window_seconds numeric := extract(epoch from p_window);
+  v_bucket timestamptz := to_timestamp(floor(extract(epoch from now()) / v_window_seconds) * v_window_seconds);
   v_count int;
 begin
   insert into public.rate_limits (key, window_start, count)
-  values (p_key, v_window_start, 1)
+  values (p_key, v_bucket, 1)
   on conflict (key, window_start)
   do update set count = rate_limits.count + 1
   returning count into v_count;
@@ -19,5 +20,4 @@ begin
 
   return v_count <= p_limit;
 end;
-$function$
-;
+$function$;
