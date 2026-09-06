@@ -23,12 +23,7 @@ create trigger force_seller_defaults_trigger
   before insert on public.sellers
   for each row execute procedure public.force_seller_defaults();
 
--- 3. Restore safe customer cancel + immutability guard
-create policy "Users can cancel own pending orders"
-  on public.orders for update
-  using (auth.uid() = user_id and status = 'pending')
-  with check (auth.uid() = user_id);
-
+-- 3. Immutability guard for orders
 create or replace function public.protect_order_fields()
 returns trigger
 language plpgsql security definer set search_path = public as $$
@@ -51,7 +46,12 @@ begin
 end;
 $$;
 
-drop trigger if exists protect_order_fields_trigger on public.orders;
 create trigger protect_order_fields_trigger
-before update on public.orders
-for each row execute procedure public.protect_order_fields();
+  before update on public.orders
+  for each row execute procedure public.protect_order_fields();
+
+-- 4. Restore safe customer cancel policy
+create policy "Users can cancel own pending orders"
+  on public.orders for update
+  using (auth.uid() = user_id and status = 'pending')
+  with check (auth.uid() = user_id);
