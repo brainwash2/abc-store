@@ -57,6 +57,9 @@ const Header = ({
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    useCartStore.getState().clearCart();
+    setUserEmail(null);
+    setIsAdmin(false);
     window.location.href = '/login';
   };
 

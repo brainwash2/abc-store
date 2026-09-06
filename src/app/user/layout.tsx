@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import { User, ShoppingBag, LogOut, Home } from 'lucide-react';
+import { useCartStore } from '@/store/useCart';
 
 export default function UserLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -12,6 +13,7 @@ export default function UserLayout({ children }: { children: React.ReactNode }) 
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
+    useCartStore.getState().clearCart();
     window.location.href = '/';
   };
 
