@@ -68,6 +68,12 @@ export default function SellerProductsPage() {
                 >
                   Dupliquer
                 </button>
+                <button
+                  onClick={() => alert('Modifier bientôt')}
+                  className="text-orange-500 hover:underline"
+                >
+                  Modifier
+                </button>
                 <button onClick={() => deleteProduct(p.id)} className="text-red-500 hover:underline">
                   Supprimer
                 </button>

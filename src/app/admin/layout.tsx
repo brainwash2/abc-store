@@ -11,7 +11,9 @@ import {
   Settings,
   LogOut,
   Store,
-  FileText
+  FileText,
+  Users,
+  Banknote
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -42,6 +44,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { icon: Package, label: 'Produits', href: '/admin/products' },
     { icon: ShoppingCart, label: 'Commandes', href: '/admin/orders' },
     { icon: FileText, label: 'Blog', href: '/admin/blog' },
+    { icon: Users, label: 'Vendeurs', href: '/admin/sellers' },
+    { icon: Banknote, label: 'Payouts', href: '/admin/payouts' },
     { icon: Settings, label: 'Paramètres', href: '/admin/settings' },
   ];
 
