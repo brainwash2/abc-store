@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { useCartStore } from '@/store/useCart';
 import {
   LayoutDashboard,
   Package,
@@ -30,6 +31,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     };
     checkAdmin();
   }, [router]);
+
+  const handleLogout = () => {
+    useCartStore.getState().clearCart();
+    supabase.auth.signOut().then(() => router.push('/'));
+  };
 
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', href: '/admin' },
@@ -69,7 +75,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
         <div className="absolute bottom-0 w-full p-4 border-t border-slate-800">
           <button
-            onClick={() => supabase.auth.signOut().then(() => router.push('/'))}
+            onClick={handleLogout}
             className="flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-slate-800 rounded-lg w-full transition-colors"
           >
             <LogOut size={20} /> Déconnexion
