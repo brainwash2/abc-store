@@ -202,6 +202,15 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 - Updated seller add product page to support file upload.
 - Verified upload worked: product image URL points to Supabase Storage.
 
+### Product form polish
+- Created reusable `ImageUploader` component with drag-and-drop, click-to-upload, preview, and French error messages.
+- Added duplicate feature for seller/admin product forms. Seller duplicate query scoped to `seller_id = auth.uid()` to prevent cloning other sellers' listings.
+- Added error clearing on input change for better UX.
+
+### Cart leakage fix
+- Fixed cross-account cart leakage: clearing cart on logout in Header, UserLayout, and AdminLayout.
+- Known limitation: cart persists across tab closes without logout (localStorage). Server-side cart persistence is backlog Week 8.
+
 ### ISR
 - Added `export const revalidate = 60` to product details page.
 
@@ -210,14 +219,53 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 
 ---
 
-## Week 7 — End-to-End UAT (NEXT)
+## Week 7 — End-to-End UAT (COMPLETE)
+
+### Customer flow
+- Registration/login worked (dashboard-created user used due to rate limit).
+- Address management worked.
+- Browse/search/filter/sort worked.
+- COD checkout worked: order created, status pending, stock decreased.
+- Chargily checkout worked: redirect, sandbox payment, webhook confirmed order (confirmed/paid).
+
+### Seller flow
+- Apply as seller worked: new seller row with submitted status.
+- Admin approve worked: role updated to seller.
+- Seller dashboard/products/orders/payouts access worked.
+- Seller product add/duplicate/delete worked.
+- Seller isolation verified: seller sees only own products/orders/payouts.
+
+### Admin flow
+- Admin products CRUD worked.
+- Admin order status changes worked.
+- Admin blog CRUD worked.
+- Admin sellers approve/reject worked.
+- Admin payouts generate/mark paid worked.
+
+### Edge cases
+- Rejected seller access: redirected cleanly.
+- Unauthenticated access: redirected to login.
+- Insufficient stock: not directly tested via UI but enforced by create_order (unit-tested earlier).
+- Duplicate product in cart: tested earlier with crafted request; aggregation works.
+- Cart leakage on tab close: known limitation; clear-on-logout covers explicit logout.
+
+### Frontend polish notes (backlog Week 8)
+- Add missing nav links: admin sidebar now includes Sellers and Payouts (fixed), seller sidebar fine.
+- Cart page needs quantity controls and image display.
+- Seller product list needs Edit button (placeholder added).
+- Product details image placeholder sometimes missing.
+- Admin product form uses raw external URLs; could use ImageUploader later.
+
+---
+
+## Week 8 — Soft Launch (NEXT)
 
 Planned:
-- Full customer flow: register, address, browse, cart, COD checkout, Chargily checkout.
-- Seller flow: apply, approve, add/edit/delete products, orders, payouts.
-- Admin flow: manage products, orders, blog, sellers, payouts.
-- Edge cases: insufficient stock, duplicate cart, abandoned Chargily, rejected seller.
-- Live environment final smoke.
+- Switch Chargily to live mode endpoint and keys.
+- Configure Resend production domain.
+- Add production monitoring/error tracking.
+- Implement per-user cart persistence (or accept clear-on-logout limitation).
+- Final live smoke test.
 
 ---
 
@@ -238,9 +286,11 @@ Planned:
 - Chargily webhook header/payload: fixed.
 - `payment_status` column missing: added with check constraint.
 - Chargily API URL: test mode `/test/api/v2`.
-- Live Vercel session drop on protected links: fixed by using plain anchors for protected user links. Root cause: client router cache stale redirect.
-- Commission rate is read at payout time, not snapshotted on order_items. Deferred until real commission changes occur.
-- Product-catalog SEO gap: product catalog page is still client-rendered; data fetch in `useEffect`, not server-side. Deferred explicitly to post-launch optimization. (Product details page is server-rendered with ISR.)
+- Live Vercel session drop: fixed by using plain anchors for protected user links.
+- Commission rate snapshot: deferred.
+- Product-catalog SEO gap: deferred.
+- Cart leakage on logout: fixed by clearing cart on logout.
+- Cart persistence across tab closes: known limitation, backlog.
 
 ## Environment
 - Local dev on Kali Linux.
