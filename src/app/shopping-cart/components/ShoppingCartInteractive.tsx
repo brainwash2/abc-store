@@ -159,8 +159,8 @@ const ShoppingCartInteractive = () => {
     if (item) {
       const savedItem: SavedItemType = {
         id: item.id,
-        name: item.name,
-        nameAr: item.nameAr,
+        name: item.title,
+        nameAr: item.titleAr,
         image: item.image,
         alt: item.alt,
         price: item.price,

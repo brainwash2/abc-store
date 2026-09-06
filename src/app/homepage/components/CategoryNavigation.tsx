@@ -28,7 +28,7 @@ const CategoryNavigation = ({ currentLanguage }: CategoryNavigationProps) => {
       alt: "Modern silver laptop computer open displaying desktop interface",
       icon: "ComputerDesktopIcon",
       productCount: 156,
-      href: "/product-catalog?category=laptops"
+      href: "/product-catalog?category=Laptops"
     },
     {
       id: 2,
@@ -38,7 +38,7 @@ const CategoryNavigation = ({ currentLanguage }: CategoryNavigationProps) => {
       alt: "Collection of modern smartphones displaying colorful home screens",
       icon: "DevicePhoneMobileIcon",
       productCount: 89,
-      href: "/product-catalog?category=smartphones"
+      href: "/product-catalog?category=Smartphones"
     },
     {
       id: 3,
@@ -58,7 +58,7 @@ const CategoryNavigation = ({ currentLanguage }: CategoryNavigationProps) => {
       alt: "White wireless earbuds and charging case on marble surface with tech accessories",
       icon: "SpeakerWaveIcon",
       productCount: 234,
-      href: "/product-catalog?category=accessories"
+      href: "/product-catalog?category=Accessoires"
     },
     {
       id: 5,
@@ -68,7 +68,7 @@ const CategoryNavigation = ({ currentLanguage }: CategoryNavigationProps) => {
       alt: "Gaming setup with RGB keyboard, mouse and colorful LED lighting",
       icon: "PuzzlePieceIcon",
       productCount: 78,
-      href: "/product-catalog?category=gaming"
+      href: "/product-catalog?category=Gaming"
     },
     {
       id: 6,
@@ -78,7 +78,7 @@ const CategoryNavigation = ({ currentLanguage }: CategoryNavigationProps) => {
       alt: "Computer motherboard with CPU, RAM modules and electronic components",
       icon: "CpuChipIcon",
       productCount: 167,
-      href: "/product-catalog?category=components"
+      href: "/product-catalog?category=Components"
     }
   ];
 
