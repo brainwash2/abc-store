@@ -210,7 +210,6 @@ const ProductCatalogInteractive = () => {
         title: product.name.fr,
         price: product.price,
         image: product.image,
-        quantity: 1
       });
       alert('Ajouté au panier !');
     }
