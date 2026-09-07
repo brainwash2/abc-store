@@ -25,12 +25,34 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  const { data: { user }, error } = await supabase.auth.getUser();
-  const path = request.nextUrl.pathname;
+  async function getVerifiedUser() {
+    const attempts = 2;
+    for (let i = 0; i < attempts; i++) {
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (!error) return user;
+      if (i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, 200));
+      }
+    }
+    // Fail closed — treat as unauthenticated
+    return null;
+  }
 
-  console.log('MIDDLEWARE path:', path);
-  console.log('MIDDLEWARE cookies:', request.cookies.getAll().map(c => c.name));
-  console.log('MIDDLEWARE user:', user?.email || 'NO USER', 'error:', error?.message || 'none');
+  async function getProfileRole(userId: string) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', userId)
+        .single();
+      if (!error && data) return data.role;
+      if (attempt === 0) await new Promise((r) => setTimeout(r, 200));
+    }
+    return null;
+  }
+
+  const user = await getVerifiedUser();
+  const path = request.nextUrl.pathname;
 
   const copyCookies = (response: NextResponse) => {
     supabaseResponse.cookies.getAll().forEach((cookie) => {
@@ -39,21 +61,14 @@ export async function middleware(request: NextRequest) {
     return response;
   };
 
-  // Skip auth for prefetch requests to prevent redirect interference
-  const isPrefetch = request.headers.get('next-router-prefetch') === '1' ||
-                     request.headers.get('purpose') === 'prefetch';
-  if (isPrefetch) {
-    return supabaseResponse;
-  }
-
   if (path.startsWith('/admin')) {
     if (!user) {
       const loginUrl = new URL('/login', request.url);
       loginUrl.searchParams.set('next', path);
       return copyCookies(NextResponse.redirect(loginUrl));
     }
-    const { data: isAdmin, error: adminError } = await supabase.rpc('is_admin');
-    if (adminError || !isAdmin) {
+    const role = await getProfileRole(user.id);
+    if (role !== 'admin') {
       return copyCookies(NextResponse.redirect(new URL('/user/dashboard', request.url)));
     }
   }
@@ -64,15 +79,9 @@ export async function middleware(request: NextRequest) {
       loginUrl.searchParams.set('next', path);
       return copyCookies(NextResponse.redirect(loginUrl));
     }
-
     if (path !== '/seller/apply') {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-
-      if (!profile || (profile.role !== 'seller' && profile.role !== 'admin')) {
+      const role = await getProfileRole(user.id);
+      if (role !== 'seller' && role !== 'admin') {
         return copyCookies(NextResponse.redirect(new URL('/user/dashboard', request.url)));
       }
     }
