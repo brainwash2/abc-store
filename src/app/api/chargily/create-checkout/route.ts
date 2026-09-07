@@ -5,12 +5,16 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { isRateLimited } from '@/lib/rate-limit';
 import { chargilyCheckoutSchema } from '@/lib/validation/schemas';
 
+const CHARGILY_API_BASE = process.env.CHARGILY_API_BASE ?? 'https://pay.chargily.net/test/api/v2';
+const CHARGILY_WEBHOOK_URL = process.env.CHARGILY_WEBHOOK_URL ?? '';
+
 function chargilyRequest(path: string, apiKey: string, body: any): Promise<{ status: number; data: any }> {
   return new Promise((resolve, reject) => {
     const postData = JSON.stringify(body);
+    const url = new URL(`${CHARGILY_API_BASE}${path}`);
     const options = {
-      hostname: 'pay.chargily.net',
-      path,
+      hostname: url.hostname,
+      path: url.pathname,
       method: 'POST',
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -104,18 +108,25 @@ export async function POST(request: Request) {
   const chargilyAmount = Math.round(order.total_amount);
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
 
+  const chargilyPayload: any = {
+    amount: chargilyAmount,
+    currency: 'dzd',
+    success_url: `${siteUrl}/order-details?order_id=${orderId}&status=success`,
+    failure_url: `${siteUrl}/checkout?status=failed`,
+    description: `Commande #${orderId.slice(0, 8)}`,
+    metadata: { order_id: orderId },
+  };
+
+  // Include webhook_url only if explicitly configured (dashboard-level otherwise)
+  if (CHARGILY_WEBHOOK_URL) {
+    chargilyPayload.webhook_url = CHARGILY_WEBHOOK_URL;
+  }
+
   try {
     const chargilyResponse = await chargilyRequest(
-      '/test/api/v2/checkouts',
+      '/checkouts',
       process.env.CHARGILY_SECRET_KEY!,
-      {
-        amount: chargilyAmount,
-        currency: 'dzd',
-        success_url: `${siteUrl}/order-details?order_id=${orderId}&status=success`,
-        failure_url: `${siteUrl}/checkout?status=failed`,
-        description: `Commande #${orderId.slice(0, 8)}`,
-        metadata: { order_id: orderId },
-      }
+      chargilyPayload
     );
 
     if (chargilyResponse.status < 200 || chargilyResponse.status >= 300) {
