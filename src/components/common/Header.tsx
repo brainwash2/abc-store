@@ -25,6 +25,7 @@ const Header = ({
   const [isScrolled, setIsScrolled] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isSeller, setIsSeller] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
 
@@ -46,8 +47,10 @@ const Header = ({
           .single();
 
         setIsAdmin(profile?.role === 'admin');
+        setIsSeller(profile?.role === 'seller' || profile?.role === 'admin');
       } else {
         setIsAdmin(false);
+        setIsSeller(false);
       }
     };
     checkUser();
@@ -60,6 +63,7 @@ const Header = ({
     useCartStore.getState().clearCart();
     setUserEmail(null);
     setIsAdmin(false);
+    setIsSeller(false);
     window.location.href = '/login';
   };
 
@@ -78,7 +82,10 @@ const Header = ({
       { label: { fr: 'Se connecter', ar: 'تسجيل الدخول' }, href: '/login', icon: 'UserIcon' },
       { label: { fr: 'Créer un compte', ar: 'إنشاء حساب' }, href: '/register', icon: 'UserPlusIcon' }
     ]),
-    ...(userEmail && isAdmin ? [{
+    ...(isSeller ? [{
+      label: { fr: 'Espace Vendeur', ar: 'مساحة البائع' }, href: '/seller', icon: 'BuildingStorefrontIcon'
+    }] : []),
+    ...(isAdmin ? [{
       label: { fr: 'Admin', ar: 'الإدارة' }, href: '/admin', icon: 'CogIcon'
     }] : []),
   ];
