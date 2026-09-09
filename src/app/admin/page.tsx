@@ -2,25 +2,45 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { DollarSign, Package, ShoppingCart, Users } from 'lucide-react';
+import { DollarSign, Package, ShoppingCart, AlertTriangle } from 'lucide-react';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
     products: 0,
     orders: 0,
-    revenue: 0
+    revenue: 0,
+    reconciliation: 0,
   });
 
   useEffect(() => {
     async function loadStats() {
-      // Get Product Count
       const { count: products } = await supabase.from('products').select('*', { count: 'exact', head: true });
-      
-      // Get Order Count
       const { count: orders } = await supabase.from('orders').select('*', { count: 'exact', head: true });
-      
-      // Calculate Revenue (Mock for now, or sum actual orders if you have them)
-      setStats({ products: products || 0, orders: orders || 0, revenue: (orders || 0) * 125000 });
+
+      // Real revenue from paid Chargily or delivered COD
+      const { data: revenueData } = await supabase
+        .from('orders')
+        .select('total_amount, payment_method, payment_status, status');
+
+      let revenue = 0;
+      if (revenueData) {
+        revenue = revenueData.reduce((sum, order) => {
+          const isPaid = order.payment_status === 'paid' ||
+            (order.payment_method === 'cash_delivery' && order.status === 'delivered');
+          return isPaid ? sum + Number(order.total_amount) : sum;
+        }, 0);
+      }
+
+      const { count: reconciliation } = await supabase
+        .from('chargily_reconciliation')
+        .select('*', { count: 'exact', head: true });
+
+      setStats({
+        products: products || 0,
+        orders: orders || 0,
+        revenue,
+        reconciliation: reconciliation || 0,
+      });
     }
     loadStats();
   }, []);
@@ -40,26 +60,12 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold text-slate-800">Dashboard Vue d'ensemble</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <StatCard 
-          title="Total Produits" 
-          value={stats.products} 
-          icon={Package} 
-          color="bg-blue-500" 
-        />
-        <StatCard 
-          title="Commandes" 
-          value={stats.orders} 
-          icon={ShoppingCart} 
-          color="bg-green-500" 
-        />
-        <StatCard 
-          title="Revenu Total (Est.)" 
-          value={`${stats.revenue.toLocaleString()} DA`} 
-          icon={DollarSign} 
-          color="bg-purple-500" 
-        />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatCard title="Total Produits" value={stats.products} icon={Package} color="bg-blue-500" />
+        <StatCard title="Commandes" value={stats.orders} icon={ShoppingCart} color="bg-green-500" />
+        <StatCard title="Revenu Réel" value={`${stats.revenue.toLocaleString()} DA`} icon={DollarSign} color="bg-purple-500" />
+        <StatCard title="Réconciliation Chargily" value={stats.reconciliation} icon={AlertTriangle} color="bg-red-500" />
       </div>
 
       <div className="bg-slate-900 text-white p-8 rounded-2xl">
