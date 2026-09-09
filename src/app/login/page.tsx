@@ -26,21 +26,10 @@ export default function LoginPage() {
 
       if (error) throw error;
 
-      // Query profiles to determine role
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', data.user.id)
-        .single();
-
-      if (!profileError && profile?.role === 'admin') {
-        router.push('/admin');
-      } else {
-        router.push('/user/dashboard');
-      }
+      window.location.href = '/user/dashboard';
     } catch (err: any) {
       console.error('Login error:', err);
-      setError(err.message || 'Une erreur est survenue.');
+      setError(err.message || "Une erreur est survenue.");
       setLoading(false);
     }
   };
@@ -94,7 +83,13 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-6 text-center text-sm text-slate-500">
+        <div className="mt-4 text-center text-sm text-slate-500">
+          <Link href="/forgot-password" className="text-violet-600 font-bold hover:underline">
+            Mot de passe oublié ?
+          </Link>
+        </div>
+
+        <div className="mt-2 text-center text-sm text-slate-500">
           Pas encore de compte ?{' '}
           <Link href="/register" className="text-violet-600 font-bold hover:underline">
             Créer un compte
