@@ -8,3 +8,6 @@ The shopping cart is stored in the browser's localStorage, not on the server. Th
 - Explicit logout clears the cart (we implemented this fix across Header, UserLayout, and AdminLayout).
 
 **Future improvement:** per-user cart persisted in the database (e.g., `cart_items` table keyed by `auth.uid()`).
+
+## Manual Password Reset Fallback
+Admin can manually set a user's password via Supabase Dashboard → Authentication → Users → select user → Reset Password, if the self-service flow ever fails for someone.

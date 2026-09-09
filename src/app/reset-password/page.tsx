@@ -6,19 +6,33 @@ import { useRouter } from 'next/navigation';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const [ready, setReady] = useState(false);
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const checkSession = async () => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setReady(true);
+      }
+    });
+
+    // Fallback: if no recovery event and no session after 3s, redirect.
+    const timeout = setTimeout(async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
         router.push('/login');
+      } else {
+        setReady(true);
       }
+    }, 3000);
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
     };
-    checkSession();
   }, [router]);
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -35,6 +49,14 @@ export default function ResetPasswordPage() {
     }
     setLoading(false);
   };
+
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50">
+        <p className="text-slate-500">Vérification du lien...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">

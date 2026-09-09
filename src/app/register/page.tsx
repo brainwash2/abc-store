@@ -17,21 +17,26 @@ export default function RegisterPage() {
     setLoading(true);
     setError(null);
 
-    // 1. Sign up
     const { data, error: authError } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
-        data: { full_name: formData.fullName } // Save name in metadata
+        data: { full_name: formData.fullName }
       }
     });
 
     if (authError) {
       setError(authError.message);
       setLoading(false);
+      return;
+    }
+
+    // If email confirmation is off, session exists immediately.
+    if (data.session) {
+      router.push('/user/dashboard');
     } else {
-      // 2. Success! Redirect to login
-      alert("Compte créé avec succès ! Connectez-vous.");
+      // If confirmation is required (future), send to login.
+      alert('Compte créé avec succès ! Connectez-vous.');
       router.push('/login');
     }
   };
@@ -55,8 +60,8 @@ export default function RegisterPage() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Nom complet</label>
             <div className="relative">
               <User className="absolute left-3 top-3 text-slate-400" size={20} />
-              <input 
-                type="text" 
+              <input
+                type="text"
                 required
                 className="w-full pl-10 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
                 placeholder="Mohamed Benali"
@@ -69,8 +74,8 @@ export default function RegisterPage() {
             <label className="block text-sm font-medium text-slate-700 mb-1">Email</label>
             <div className="relative">
               <Mail className="absolute left-3 top-3 text-slate-400" size={20} />
-              <input 
-                type="email" 
+              <input
+                type="email"
                 required
                 className="w-full pl-10 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
                 placeholder="nom@exemple.com"
@@ -78,13 +83,13 @@ export default function RegisterPage() {
               />
             </div>
           </div>
-          
+
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">Mot de passe</label>
             <div className="relative">
               <Lock className="absolute left-3 top-3 text-slate-400" size={20} />
-              <input 
-                type="password" 
+              <input
+                type="password"
                 required
                 className="w-full pl-10 p-3 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary outline-none"
                 placeholder="••••••••"
@@ -93,7 +98,7 @@ export default function RegisterPage() {
             </div>
           </div>
 
-          <button 
+          <button
             disabled={loading}
             className="w-full bg-primary text-white py-3 rounded-lg font-bold hover:opacity-90 transition-opacity flex justify-center"
           >
