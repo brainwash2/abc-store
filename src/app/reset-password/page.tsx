@@ -1,4 +1,3 @@
-cat > src/app/reset-password/page.tsx << 'EOF'
 'use client';
 
 import React, { useEffect, useState } from 'react';
@@ -68,4 +67,3 @@ export default function ResetPasswordPage() {
     </div>
   );
 }
-EOF
