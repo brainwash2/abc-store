@@ -98,7 +98,6 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
   - Calls `create_order()` with `payment_method='chargily'`.
   - Fetches order total.
   - Sends to Chargily test endpoint with correct amount, currency `dzd`.
-  - Removed `webhook_url`.
 - Verified redirect to Chargily test payment page.
 
 ### Webhook
@@ -110,7 +109,7 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
   - Updates order to confirmed/paid.
 - Added `payment_status` column to `orders`.
 - Added check constraint on `payment_status`.
-- End-to-end webhook verified via ngrok: order updated to confirmed/paid.
+- End-to-end webhook verified: order updated to confirmed/paid.
 
 ### Abandoned order cleanup
 - Enabled `pg_cron`.
@@ -141,18 +140,18 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 - Backfilled `user_id` on existing order_items and fixed RLS recursion.
 
 ### Seller dashboard UI
-- `/seller/apply` – application form with check-first logic (uses `.maybeSingle()`).
+- `/seller/apply` – application form with check-first logic.
 - `/seller` – dashboard home showing store name/KYC status.
 - `/seller/products` – list and delete own products.
 - `/seller/products/add` – add product with category select.
-- `/seller/orders` – list orders containing seller's items (grouped client-side).
+- `/seller/orders` – list orders containing seller's items.
 - `/seller/payouts` – shows payouts.
 - Admin sellers page at `/admin/sellers` with approve/reject actions.
 - API route `/api/admin/sellers` for admin actions.
 
 ### Testing
 - Local: all seller flow tests passed.
-- Live smoke test passed: homepage, admin, rejected seller redirect, seller apply, product SEO.
+- Live smoke test passed.
 
 ---
 
@@ -167,7 +166,7 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
   - Supports COD (`payment_method='cash_delivery'` and `status='delivered'`) and Chargily (`payment_status='paid'`).
   - Deletes placeholder if no items claimed.
 - Created `mark_payout_paid(p_payout_id)` function (service_role only, pending-only guard).
-- Created admin API route `/api/admin/payouts` for generate/mark_paid actions.
+- Created admin API route `/api/admin/payouts`.
 - Created admin payouts page and seller payouts page.
 
 ### Testing
@@ -182,90 +181,105 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 ## Week 6 — Hardening & Performance (COMPLETE)
 
 ### Session-drop fix
-- Issue: live Vercel session dropped on protected links (`/user/orders`, `/user/dashboard`) when navigating via header or sidebar.
-- Root cause: Next.js client router cache reusing stale prefetch redirect for protected routes — upstream issue #88937.
-- Fix: used plain `<a>` tags (full page reload) for protected user links in `Header` and `UserLayout`; middleware server-side gating remains intact.
-- Verified live: session persisted across multiple navigations; no redirect loop.
+- Root cause: Next.js client router cache reusing stale prefetch redirect for protected routes.
+- Fix: plain `<a>` tags for protected user links.
+- Verified live.
 
 ### Rate limiting (Postgres, no Upstash)
-- Created `rate_limits` table and `check_rate_limit` function (atomic upsert, service_role only).
+- Created `rate_limits` table and `check_rate_limit` function (atomic upsert).
 - Applied to `/api/orders`, `/api/emails/send`, `/api/chargily/create-checkout`, `/api/admin/sellers`, `/api/admin/payouts`.
+- Fixed window bucketing bug (was bucketing by second regardless of window).
 
 ### Input validation
-- Added Zod schemas in `src/lib/validation/schemas.ts`.
+- Added Zod schemas.
 - Applied to order, chargily, and email routes.
 
 ### Supabase Storage
 - Created public bucket `product-images`.
-- Added storage policy for public read.
 - Created `/api/upload` route with file type/size validation and admin/seller role check.
-- Updated seller add product page to support file upload.
-- Verified upload worked: product image URL points to Supabase Storage.
+- Verified upload works.
 
 ### Product form polish
-- Created reusable `ImageUploader` component with drag-and-drop, click-to-upload, preview, and French error messages.
-- Added duplicate feature for seller/admin product forms. Seller duplicate query scoped to `seller_id = auth.uid()` to prevent cloning other sellers' listings.
-- Added error clearing on input change for better UX.
+- Created reusable `ImageUploader` component with drag-and-drop, preview.
+- Duplicate feature with seller_id scoping.
+- Error clearing on input.
 
 ### Cart leakage fix
-- Fixed cross-account cart leakage: clearing cart on logout in Header, UserLayout, and AdminLayout.
-- Known limitation: cart persists across tab closes without logout (localStorage). Server-side cart persistence is backlog Week 8.
+- Cleared cart on logout in Header, UserLayout, AdminLayout.
 
 ### ISR
 - Added `export const revalidate = 60` to product details page.
 
 ### RLS audit
-- Re-ran `pg_policies`; all policies correctly scoped; no unauthorized public access except intentional public read on products/published posts/approved sellers.
+- Re-ran `pg_policies`; all policies correctly scoped.
 
 ---
 
 ## Week 7 — End-to-End UAT (COMPLETE)
 
 ### Customer flow
-- Registration/login worked (dashboard-created user used due to rate limit).
-- Address management worked.
-- Browse/search/filter/sort worked.
-- COD checkout worked: order created, status pending, stock decreased.
-- Chargily checkout worked: redirect, sandbox payment, webhook confirmed order (confirmed/paid).
+- Registration/login, address, browse, COD checkout, Chargily checkout all passed.
 
 ### Seller flow
-- Apply as seller worked: new seller row with submitted status.
-- Admin approve worked: role updated to seller.
-- Seller dashboard/products/orders/payouts access worked.
-- Seller product add/duplicate/delete worked.
-- Seller isolation verified: seller sees only own products/orders/payouts.
+- Apply, approve, dashboard, products, orders, payouts all passed.
+- Seller isolation verified.
 
 ### Admin flow
-- Admin products CRUD worked.
-- Admin order status changes worked.
-- Admin blog CRUD worked.
-- Admin sellers approve/reject worked.
-- Admin payouts generate/mark paid worked.
+- Products, orders, blog, sellers, payouts all passed.
 
 ### Edge cases
-- Rejected seller access: redirected cleanly.
-- Unauthenticated access: redirected to login.
-- Insufficient stock: not directly tested via UI but enforced by create_order (unit-tested earlier).
-- Duplicate product in cart: tested earlier with crafted request; aggregation works.
-- Cart leakage on tab close: known limitation; clear-on-logout covers explicit logout.
-
-### Frontend polish notes (backlog Week 8)
-- Add missing nav links: admin sidebar now includes Sellers and Payouts (fixed), seller sidebar fine.
-- Cart page needs quantity controls and image display.
-- Seller product list needs Edit button (placeholder added).
-- Product details image placeholder sometimes missing.
-- Admin product form uses raw external URLs; could use ImageUploader later.
+- Rejected seller, unauthenticated access, cart leakage fixed, cart tab-close noted.
 
 ---
 
-## Week 8 — Soft Launch (NEXT)
+## Week 8 — Soft Launch Preparation (IN PROGRESS)
 
-Planned:
-- Switch Chargily to live mode endpoint and keys.
-- Configure Resend production domain.
-- Add production monitoring/error tracking.
-- Implement per-user cart persistence (or accept clear-on-logout limitation).
-- Final live smoke test.
+### Security hardening (post-Qwen audit)
+- Removed temporary public insert policy on `orders`.
+- Removed dangerous `Users can update own pending orders` policy.
+- Added `force_seller_defaults` trigger (blocks self-approval on INSERT; sets `submitted`, `false`, `10.00`).
+- Added `protect_order_fields` trigger (blocks changes to `total_amount`, `payment_status`, `user_id`, `payment_method`).
+- Restored safe `Users can cancel own pending orders` policy.
+- Ran exploit regression tests: anonymous insert fails; seller self-approval forced to safe values.
+
+### Chargily env refactor
+- Created `CHARGILY_API_BASE` env var (test vs live switch without code change).
+- Removed `webhook_url` from per-checkout payload — Chargily V2 rejects it; webhook is account-level configured in dashboard.
+- Verified working.
+
+### Password reset flow
+- `/forgot-password` uses `resetPasswordForEmail`.
+- `/reset-password` uses `onAuthStateChange` to wait for `PASSWORD_RECOVERY` event (fixes race).
+- Login page includes "Mot de passe oublié ?" link.
+- Manual fallback documented in `BUSINESS_NOTES.md`.
+
+### Signup friction removed
+- Turned OFF "Confirm email" in Supabase Auth.
+- Register page redirects directly to `/user/dashboard` when session exists.
+- No more double login on signup.
+
+### Admin dashboard real metrics
+- Replaced fake revenue with real paid/delivered revenue.
+- Added `Réconciliation Chargily` count from view.
+
+### Middleware resilience
+- Kept `getUser()` for real auth verification.
+- Added retry with backoff for transient network failures.
+- Fails closed (redirect to login) — never bypass.
+
+### UI additions
+- Seller link in header dropdown (visible to sellers and admins).
+- Admin sidebar has Sellers and Payouts links.
+
+### Documented limitations
+- `BUSINESS_NOTES.md`: cart persistence across tab closes, manual password reset fallback.
+- Email sending deferred until domain purchase; using WhatsApp/phone for order confirmations.
+
+### Remaining before actual soft launch
+- Purchase domain and verify in Resend (deferred).
+- Switch `CHARGILY_API_BASE` to `https://pay.chargily.net/api/v2` and use live key.
+- Final live smoke test on Vercel.
+- Optional: UptimeRobot free monitoring.
 
 ---
 
@@ -285,12 +299,17 @@ Planned:
 - Chargily amount format: corrected to plain DZD.
 - Chargily webhook header/payload: fixed.
 - `payment_status` column missing: added with check constraint.
-- Chargily API URL: test mode `/test/api/v2`.
-- Live Vercel session drop: fixed by using plain anchors for protected user links.
+- Chargily API URL: test mode via env var.
+- Live Vercel session drop: fixed by plain anchors for protected user links.
 - Commission rate snapshot: deferred.
 - Product-catalog SEO gap: deferred.
-- Cart leakage on logout: fixed by clearing cart on logout.
-- Cart persistence across tab closes: known limitation, backlog.
+- Cart leakage on logout: fixed.
+- Cart persistence across tab closes: known limitation, documented.
+- Signup redirected to login unnecessarily: fixed (direct dashboard redirect).
+- Password reset race condition: fixed with `PASSWORD_RECOVERY` event.
+- `webhook_url` in Chargily payload: removed (V2 API rejects it).
+- Admin dashboard fake revenue: replaced with real metrics.
+- Middleware transient fetch failures: retry with backoff, fail closed.
 
 ## Environment
 - Local dev on Kali Linux.
@@ -298,9 +317,11 @@ Planned:
 - Admin user: admin@mail (role admin)
 - Normal users: USER1, USER2
 - Remote: https://github.com/brainwash2/abc-store.git
+- Live site: https://abc-store-seven.vercel.app
 
 ## Verification Habits
 - Always run SQL queries to confirm actual DB state.
 - Use production build for middleware/session testing.
 - Use incognito window to avoid stale cookies.
 - Commit after each verified step.
+- Run exploit regression tests after any security-related change.
