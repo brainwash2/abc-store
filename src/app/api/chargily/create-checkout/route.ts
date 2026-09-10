@@ -6,7 +6,6 @@ import { isRateLimited } from '@/lib/rate-limit';
 import { chargilyCheckoutSchema } from '@/lib/validation/schemas';
 
 const CHARGILY_API_BASE = process.env.CHARGILY_API_BASE ?? 'https://pay.chargily.net/test/api/v2';
-const CHARGILY_WEBHOOK_URL = process.env.CHARGILY_WEBHOOK_URL ?? '';
 
 function chargilyRequest(path: string, apiKey: string, body: any): Promise<{ status: number; data: any }> {
   return new Promise((resolve, reject) => {
@@ -116,11 +115,6 @@ export async function POST(request: Request) {
     description: `Commande #${orderId.slice(0, 8)}`,
     metadata: { order_id: orderId },
   };
-
-  // Include webhook_url only if explicitly configured (dashboard-level otherwise)
-  if (CHARGILY_WEBHOOK_URL) {
-    chargilyPayload.webhook_url = CHARGILY_WEBHOOK_URL;
-  }
 
   try {
     const chargilyResponse = await chargilyRequest(
