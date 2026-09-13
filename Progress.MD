@@ -325,3 +325,45 @@ Next.js + Supabase e-commerce app for Algerian electronics retailer, evolving to
 - Use incognito window to avoid stale cookies.
 - Commit after each verified step.
 - Run exploit regression tests after any security-related change.
+
+---
+
+## Post-Launch Backlog
+
+Consolidated from Claude's review of the Amazon report (9 Sep 2026), existing deferred items, and frontend polish notes. Single source of truth — no separate roadmap document.
+
+### High Priority (soft launch → ~3 months)
+- Customer reviews/ratings per product (trust flywheel; critical for a COD-first market where word-of-mouth is the primary acquisition channel)
+- "Frequently bought together" — simple query on `order_items` joining orders that share products; no ML needed
+- Frontend polish:
+  - Cart page quantity controls (currently missing)
+  - Cart page image display (currently missing)
+  - Seller product edit page (currently a placeholder `alert('Modifier bientôt')`)
+  - Product image placeholder improvements in product details
+- Sentry (free tier) — real upgrade over manual Vercel/Supabase log watching; the ONE new vendor worth considering, because it never touches data or auth, only observes
+
+### Medium Priority (~3–9 months)
+- Carrier tracking API integration (Yalidine or ZR Express; most offer REST APIs) — full last-mile visibility without building a courier network
+- Loyalty / points program — local equivalent of a lightweight "Prime"
+- Product search via Supabase Postgres `pg_trgm` / FTS — zero new infrastructure; defer Meilisearch/Algolia until scale genuinely demands
+- Product-catalog SEO — convert `product-catalog/page.tsx` to a server component with ISR (same pattern as `product-details`)
+
+### Strategic (9+ months)
+- Seller storefront pages (each seller's own public catalog URL)
+- Internal sponsored / featured listings for sellers — convergent with Ouedkniss's proven Algerian willingness to pay for boosted visibility; same underlying idea as Amazon Ads at PME scale
+- Commission rate snapshot on `order_items` (must be done before any seller's `commission_rate` is actually changed)
+- Per-user cart persistence in DB (replace `localStorage`; fixes tab-close limitation)
+- Automated payout scheduling (currently manual admin trigger)
+- Light warehouse automation (barcode scanning, real-time stock) only if physical volume justifies
+
+### Explicitly Rejected (from the Amazon report — reasons recorded so we don't relitigate)
+- **Prisma ORM** — would require rewriting the RLS-integrated Supabase data layer (every policy, trigger, `security definer` function) for no real gain
+- **Upstash (Redis + QStash)** — foreign USD vendor, same carte-internationale problem that ruled out Medusa/Clerk/etc.; our rate limiting (Postgres) and cart (Zustand+persist) already solve what it would
+- **Algolia / Meilisearch** — foreign vendors; Supabase pg_trgm/FTS suffices until scale justifies
+- **Amazon-style microservices** — the report itself notes Prime Video reverted from this; wrong scale, and Next.js + Supabase is intentionally a single coherent stack for this project
+- **Stripe / PayPal** — not available in Algeria; Chargily already used as the SATIM aggregator
+
+### Notes on the Amazon report
+- Financial figures in the report are internally inconsistent (AWS 2024 revenue stated as $59.2B in prose vs. ~$110B reality; advertising cited as both $68.6B and $56.2B for the same year). Treat numbers as illustrative, not citable.
+- Report's Phase 1 ("catalog + cart + COD") and Phase 3 ("open a multi-vendor marketplace with commission") are already done; the report was calibrated for a business earlier than where we are.
+- Its structural advice (modular architecture, trust flywheel, revenue diversification) remains sound directionally, and its recommendation of BaridiMob + COD + SATIM-via-aggregator matches our existing architecture.
