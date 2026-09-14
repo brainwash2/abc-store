@@ -1,10 +1,10 @@
 'use client';
+import { useCartStore } from '@/store/useCart';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Icon from '@/components/ui/AppIcon';
 import CartSheet from '@/components/layout/CartSheet';
-import { useCartStore } from '@/store/useCart';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
@@ -29,7 +29,6 @@ const Header = ({
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
 
-  const cartItems = useCartStore((state) => state.items);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 0);
